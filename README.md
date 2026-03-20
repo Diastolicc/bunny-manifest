@@ -1,4 +1,4 @@
-# Club Reservation App
+# Bunny 
 
 A comprehensive Flutter application for managing club reservations with both mobile and web admin interfaces. Built with Firebase backend integration and modern Flutter architecture.
 
