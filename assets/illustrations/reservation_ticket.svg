@@ -1,0 +1,46 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ticket background -->
+  <circle cx="60" cy="60" r="50" fill="#0984E3" opacity="0.1"/>
+  
+  <!-- Ticket -->
+  <rect x="25" y="35" width="70" height="50" rx="8" fill="#0984E3"/>
+  
+  <!-- Ticket perforations -->
+  <circle cx="60" cy="35" r="3" fill="white"/>
+  <circle cx="60" cy="85" r="3" fill="white"/>
+  
+  <!-- Ticket content -->
+  <rect x="30" y="40" width="60" height="40" rx="4" fill="white"/>
+  
+  <!-- Event details -->
+  <text x="60" y="50" text-anchor="middle" font-family="Arial" font-size="8" font-weight="bold" fill="#333">CLUB RESERVATION</text>
+  <text x="60" y="62" text-anchor="middle" font-family="Arial" font-size="6" fill="#666">Date: Tonight</text>
+  <text x="60" y="70" text-anchor="middle" font-family="Arial" font-size="6" fill="#666">Time: 9:00 PM</text>
+  <text x="60" y="78" text-anchor="middle" font-family="Arial" font-size="6" fill="#666">Party: VIP Access</text>
+  
+  <!-- QR Code placeholder -->
+  <rect x="45" y="55" width="15" height="15" fill="#333"/>
+  <rect x="47" y="57" width="2" height="2" fill="white"/>
+  <rect x="51" y="57" width="2" height="2" fill="white"/>
+  <rect x="55" y="57" width="2" height="2" fill="white"/>
+  <rect x="47" y="61" width="2" height="2" fill="white"/>
+  <rect x="51" y="61" width="2" height="2" fill="#333"/>
+  <rect x="55" y="61" width="2" height="2" fill="white"/>
+  <rect x="47" y="65" width="2" height="2" fill="white"/>
+  <rect x="51" y="65" width="2" height="2" fill="white"/>
+  <rect x="55" y="65" width="2" height="2" fill="white"/>
+  
+  <!-- Checkmark -->
+  <circle cx="60" cy="25" r="8" fill="#00B894"/>
+  <path d="M55 25 L58 28 L65 21" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Confetti around ticket -->
+  <rect x="15" y="20" width="2" height="2" rx="1" fill="#FFD700"/>
+  <rect x="100" y="25" width="2" height="2" rx="1" fill="#FF6B6B"/>
+  <rect x="20" y="95" width="2" height="2" rx="1" fill="#4ECDC4"/>
+  <rect x="105" y="90" width="2" height="2" rx="1" fill="#45B7D1"/>
+  
+  <!-- Success stars -->
+  <text x="30" y="30" font-size="12" fill="#FFD700">⭐</text>
+  <text x="90" y="30" font-size="12" fill="#FFD700">⭐</text>
+</svg>

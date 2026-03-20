@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Admin Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0175C2;
+            text-align: center;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .button {
+            background-color: #0175C2;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Club Reservation Admin Panel Test</h1>
+        
+        <div class="status info">
+            <strong>Status:</strong> Web server is running on port 8080
+        </div>
+        
+        <div class="status success">
+            <strong>✅ Admin Panel Built Successfully!</strong><br>
+            The web admin panel has been compiled and is ready to use.
+        </div>
+        
+        <h2>🚀 How to Access the Admin Panel:</h2>
+        <ol>
+            <li><strong>Click the button below</strong> to open the admin panel</li>
+            <li><strong>Login</strong> with your Firebase credentials (same as your mobile app)</li>
+            <li><strong>Manage</strong> users, clubs, and parties from the web interface</li>
+        </ol>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <button class="button" onclick="openAdminPanel()">
+                🎯 Open Admin Panel
+            </button>
+        </div>
+        
+        <h2>📋 Admin Panel Features:</h2>
+        <ul>
+            <li><strong>Dashboard:</strong> Overview of system statistics</li>
+            <li><strong>User Management:</strong> View and manage all registered users</li>
+            <li><strong>Club Management:</strong> View, edit, and delete clubs</li>
+            <li><strong>Party Management:</strong> View and delete parties</li>
+            <li><strong>Real-time Updates:</strong> Live data from Firebase</li>
+            <li><strong>Secure Authentication:</strong> Firebase Auth integration</li>
+        </ul>
+        
+        <div class="status info">
+            <strong>💡 Tip:</strong> The admin panel works independently from your mobile app. 
+            You can access it from any web browser on any device.
+        </div>
+        
+        <h2>🔧 Technical Details:</h2>
+        <ul>
+            <li><strong>Framework:</strong> Flutter Web</li>
+            <li><strong>Backend:</strong> Firebase (Firestore, Auth)</li>
+            <li><strong>Server:</strong> Python HTTP Server (Port 8080)</li>
+            <li><strong>URL:</strong> http://localhost:8080</li>
+        </ul>
+    </div>
+    
+    <script>
+        function openAdminPanel() {
+            window.open('http://localhost:8080', '_blank');
+        }
+        
+        // Auto-refresh status every 30 seconds
+        setInterval(function() {
+            fetch('http://localhost:8080')
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Admin panel is accessible');
+                    }
+                })
+                .catch(error => {
+                    console.log('Admin panel may not be running');
+                });
+        }, 30000);
+    </script>
+</body>
+</html>

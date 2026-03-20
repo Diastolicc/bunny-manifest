@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Admin Account</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #0175C2;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #0175C2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #015a9a;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .error {
+            color: #dc3545;
+            margin-top: 10px;
+        }
+        
+        .success {
+            color: #28a745;
+            margin-top: 10px;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: #0175C2;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Create Admin Account</h2>
+        <form id="createAccountForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="displayName">Display Name:</label>
+                <input type="text" id="displayName" required>
+            </div>
+            <button type="submit" id="createBtn">Create Admin Account</button>
+            <div id="message"></div>
+        </form>
+        
+        <div class="back-link">
+            <a href="simple_admin.html">← Back to Login</a>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPMiRH37zPeyMCs4XDEeN_07MPKrF-zYk",
+            authDomain: "bunny-59131.firebaseapp.com",
+            projectId: "bunny-59131",
+            storageBucket: "bunny-59131.firebasestorage.app",
+            messagingSenderId: "268326738003",
+            appId: "1:268326738003:web:671afd855769db4fdf0ea6",
+            measurementId: "G-8VKP242NXZ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Create account form
+        document.getElementById('createAccountForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const displayName = document.getElementById('displayName').value;
+            const createBtn = document.getElementById('createBtn');
+            const messageDiv = document.getElementById('message');
+
+            createBtn.disabled = true;
+            createBtn.textContent = 'Creating Account...';
+            messageDiv.textContent = '';
+
+            try {
+                // Create user account
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Create user profile in Firestore
+                await setDoc(doc(db, 'users', user.uid), {
+                    id: user.uid,
+                    displayName: displayName,
+                    email: email,
+                    createdAt: new Date(),
+                    isAdmin: true
+                });
+
+                messageDiv.textContent = 'Admin account created successfully! You can now login.';
+                messageDiv.className = 'success';
+                
+                // Clear form
+                document.getElementById('email').value = '';
+                document.getElementById('password').value = '';
+                document.getElementById('displayName').value = '';
+
+            } catch (error) {
+                messageDiv.textContent = 'Error: ' + error.message;
+                messageDiv.className = 'error';
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = 'Create Admin Account';
+            }
+        });
+    </script>
+</body>
+</html>

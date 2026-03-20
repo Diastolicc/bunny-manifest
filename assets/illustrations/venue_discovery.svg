@@ -1,0 +1,32 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Building/Venue -->
+  <rect x="20" y="40" width="80" height="60" rx="8" fill="#6C5CE7" opacity="0.1"/>
+  <rect x="25" y="45" width="70" height="50" rx="4" fill="#6C5CE7"/>
+  
+  <!-- Windows -->
+  <rect x="35" y="55" width="12" height="12" rx="2" fill="white" opacity="0.8"/>
+  <rect x="55" y="55" width="12" height="12" rx="2" fill="white" opacity="0.8"/>
+  <rect x="75" y="55" width="12" height="12" rx="2" fill="white" opacity="0.8"/>
+  <rect x="35" y="75" width="12" height="12" rx="2" fill="white" opacity="0.8"/>
+  <rect x="55" y="75" width="12" height="12" rx="2" fill="white" opacity="0.8"/>
+  <rect x="75" y="75" width="12" height="12" rx="2" fill="white" opacity="0.8"/>
+  
+  <!-- Door -->
+  <rect x="50" y="80" width="20" height="15" rx="2" fill="#4A4A4A"/>
+  <circle cx="65" cy="87.5" r="2" fill="white"/>
+  
+  <!-- Sign -->
+  <rect x="40" y="30" width="40" height="8" rx="4" fill="#FFD700"/>
+  <text x="60" y="36" text-anchor="middle" font-family="Arial" font-size="6" fill="#333">CLUB</text>
+  
+  <!-- People approaching -->
+  <circle cx="10" cy="90" r="4" fill="#FF6B6B"/>
+  <rect x="8" y="94" width="4" height="8" rx="2" fill="#4ECDC4"/>
+  
+  <circle cx="110" cy="85" r="4" fill="#45B7D1"/>
+  <rect x="108" y="89" width="4" height="8" rx="2" fill="#96CEB4"/>
+  
+  <!-- Location pin -->
+  <path d="M60 15 L60 25 L55 30 L65 30 Z" fill="#E17055"/>
+  <circle cx="60" cy="20" r="3" fill="#E17055"/>
+</svg>
