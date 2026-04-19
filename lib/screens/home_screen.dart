@@ -88,7 +88,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           height: 380,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(left: 24, right: 24, top: 8, bottom: 8),
+            padding:
+                const EdgeInsets.only(left: 24, right: 24, top: 8, bottom: 8),
             itemCount: parties.length,
             separatorBuilder: (context, index) => const SizedBox(width: 16),
             itemBuilder: (context, index) {
@@ -239,15 +240,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    
+
     _locationFilterScaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _locationFilterAnimController, curve: Curves.elasticOut),
+      CurvedAnimation(
+          parent: _locationFilterAnimController, curve: Curves.elasticOut),
     );
-    
-    _locationFilterSlideAnimation = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(parent: _locationFilterAnimController, curve: Curves.easeOut),
+
+    _locationFilterSlideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(
+          parent: _locationFilterAnimController, curve: Curves.easeOut),
     );
-    
+
     // Start animation after a small delay
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
@@ -293,7 +297,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _isHeaderMinimized = false;
       });
     }
-
   }
 
   void _generateDates() {
@@ -544,7 +547,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildDateSelector() {
     final today = DateTime.now();
     final isAllSelected = _selectedDateForQuickAccess == null;
-    
+
     return SizedBox(
       height: 80,
       child: Row(
@@ -561,7 +564,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               width: 60,
               margin: const EdgeInsets.only(left: 0, right: 12),
               decoration: BoxDecoration(
-                color: isAllSelected ? AppTheme.colors.primary : Colors.grey.shade100,
+                color: isAllSelected
+                    ? AppTheme.colors.primary
+                    : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: isAllSelected
@@ -583,7 +588,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Text(
                   'ALL',
                   style: TextStyle(
-                    color: isAllSelected ? Colors.white : AppTheme.colors.textSecondary,
+                    color: isAllSelected
+                        ? Colors.white
+                        : AppTheme.colors.textSecondary,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
@@ -613,7 +620,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: Container(
                     width: 60,
                     decoration: BoxDecoration(
-                      color: isSelected ? AppTheme.colors.primary : Colors.grey.shade100,
+                      color: isSelected
+                          ? AppTheme.colors.primary
+                          : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isSelected
@@ -648,7 +657,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Text(
                             _getDayName(date),
                             style: TextStyle(
-                              color: isSelected ? Colors.white : AppTheme.colors.textSecondary,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppTheme.colors.textSecondary,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -679,9 +690,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return days[date.weekday - 1];
   }
 
-  Widget _buildLocationDropdown() {
-    final locations = ['Poblacion', 'BGC', 'Tomas Morato', 'Makati', 'Quezon City', 'Pasig'];
-    
+  Widget _buildLocationIcon() {
+    final locations = [
+      'Poblacion',
+      'BGC',
+      'Tomas Morato',
+      'Makati',
+      'Quezon City',
+      'Pasig'
+    ];
+
+    // Auto-select first location on init if not already selected
+    if (_selectedLocationFilter == 'All') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _selectedLocationFilter = locations.first;
+          });
+          _loadUpcomingParties();
+        }
+      });
+    }
+
     return AnimatedBuilder(
       animation: _locationFilterAnimController,
       builder: (context, child) {
@@ -694,80 +724,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         );
       },
-      child: SizedBox(
-        width: 110,
-        child: GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact();
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              border: Border.all(
-                color: const Color(0xFF8d58b5),
-                width: 1.5,
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedLocationFilter,
-                isExpanded: true,
-                borderRadius: BorderRadius.circular(20),
-                dropdownColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                style: const TextStyle(
-                  color: Color(0xFF8d58b5),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
-                ),
-                icon: const Padding(
-                  padding: EdgeInsets.only(right: 2),
-                  child: Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: Color(0xFF8d58b5),
-                    size: 16,
-                  ),
-                ),
-                items: locations.map((location) {
-                  return DropdownMenuItem<String>(
-                    value: location,
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on_rounded,
-                          color: Color(0xFF8d58b5),
-                          size: 13,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            location,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF8d58b5),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    HapticFeedback.mediumImpact();
-                    setState(() {
-                      _selectedLocationFilter = newValue;
-                    });
-                    _loadUpcomingParties();
-                  }
-                },
-              ),
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.colors.background,
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: Icon(
+            Icons.location_on,
+            color: AppTheme.colors.primary,
+            size: 20,
           ),
+          onPressed: () {
+            // Cycle through available locations on tap
+            final locations = [
+              'Poblacion',
+              'BGC',
+              'Tomas Morato',
+              'Makati',
+              'Quezon City',
+              'Pasig'
+            ];
+            final currentIndex = locations.indexOf(_selectedLocationFilter);
+            final nextIndex = (currentIndex + 1) % locations.length;
+            setState(() {
+              _selectedLocationFilter = locations[nextIndex];
+            });
+            _loadUpcomingParties();
+            HapticFeedback.mediumImpact();
+          },
         ),
       ),
     );
@@ -1589,13 +1574,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   List<Party> _applyFilters(List<Party> parties) {
     List<Party> filtered = parties;
-    
-    print('_applyFilters: _selectedDateForQuickAccess = $_selectedDateForQuickAccess');
+
+    print(
+        '_applyFilters: _selectedDateForQuickAccess = $_selectedDateForQuickAccess');
     if (_selectedDateForQuickAccess != null) {
       print('Filtering by date...');
       int before = filtered.length;
       filtered = filtered.where((party) {
-        final matches = _isSameDate(party.dateTime, _selectedDateForQuickAccess!);
+        final matches =
+            _isSameDate(party.dateTime, _selectedDateForQuickAccess!);
         if (matches) {
           print('  MATCH: ${party.title} on ${party.dateTime}');
         }
@@ -1672,12 +1659,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _isUpcomingLoading = true;
         });
       }
-      print('_loadUpcomingParties START - selectedDate: $_selectedDateForQuickAccess');
+      print(
+          '_loadUpcomingParties START - selectedDate: $_selectedDateForQuickAccess');
       print('Loading from database...');
       final partyService = context.read<PartyService>();
       final allParties = await partyService.getUpcomingParties(limit: 50);
       print('Got ${allParties.length} parties from DB');
-      
+
       // Print all party dates to see what we're working with
       for (var p in allParties.take(5)) {
         print('Party: ${p.title} - Date: ${p.dateTime}');
@@ -1689,7 +1677,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       print('About to call _applyFilters with ${allParties.length} parties');
       final filteredParties = _applyFilters(allParties);
       print('After filtering: ${filteredParties.length} parties');
-      
+
       setState(() {
         _upcomingPartiesFuture = Future.value(filteredParties);
       });
@@ -1765,12 +1753,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return FutureBuilder<BannerConfig?>(
       future: _bannerFuture,
       builder: (context, snapshot) {
-        print('BannerImage: ConnectionState: ${snapshot.connectionState}, HasData: ${snapshot.hasData}, Data: ${snapshot.data?.imageUrl}');
-        
+        print(
+            'BannerImage: ConnectionState: ${snapshot.connectionState}, HasData: ${snapshot.hasData}, Data: ${snapshot.data?.imageUrl}');
+
         // Default banner URL if no banner is set in database
-        final defaultBannerUrl = 'https://firebasestorage.googleapis.com/v0/b/bunny-59131.firebasestorage.app/o/photo-1516450360452-9312f5e86fc7%20copy.jpg?alt=media&token=77aafb88-ece6-4d0e-bfd9-1b7ea6874667';
+        final defaultBannerUrl =
+            'https://firebasestorage.googleapis.com/v0/b/bunny-59131.firebasestorage.app/o/photo-1516450360452-9312f5e86fc7%20copy.jpg?alt=media&token=77aafb88-ece6-4d0e-bfd9-1b7ea6874667';
         final imageUrl = snapshot.data?.imageUrl ?? defaultBannerUrl;
-        
+
         print('BannerImage: Using imageUrl: $imageUrl');
 
         return Container(
@@ -2016,7 +2006,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   TextStyle get _sectionHeaderStyle => const TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.bold,
-      color: Color(0xFF374151),
+        color: Color(0xFF374151),
       );
 
   TextStyle get _sectionSubtextStyle => TextStyle(
@@ -2028,10 +2018,34 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.colors.background,
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
+          Positioned(
+            top: -120,
+            left: -60,
+            child: Container(
+              width: 260,
+              height: 260,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.colors.primary.withOpacity(0.12),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 90,
+            right: -50,
+            child: Container(
+              width: 210,
+              height: 210,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.colors.secondary.withOpacity(0.10),
+              ),
+            ),
+          ),
           // Sticky Top Bar
           Positioned(
             top: 0,
@@ -2040,8 +2054,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: SafeArea(
               bottom: false,
               child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                margin: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.88),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.92),
+                    width: 1.4,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.colors.primary.withOpacity(0.10),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
                 child: Consumer2<AuthService, NotificationService>(
                   builder: (context, auth, notificationService, child) {
                     final currentUserId = auth.firebaseUser?.uid;
@@ -2049,27 +2079,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       notificationService.initializeForUser(currentUserId);
                     }
                     final notifications = notificationService.notifications;
-                    final unreadCount = notifications.where((n) => !n.isRead).length;
+                    final unreadCount =
+                        notifications.where((n) => !n.isRead).length;
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Image.asset(
                           'assets/logos/wordmark_color.png',
-                          height: 36,
+                          height: 30,
                           fit: BoxFit.contain,
                         ),
                         Row(
                           children: [
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
+                                color: AppTheme.colors.background,
                                 shape: BoxShape.circle,
                               ),
                               child: IconButton(
                                 icon: Icon(
                                   Icons.search,
                                   color: AppTheme.colors.textSecondary,
-                                  size: 24,
+                                  size: 22,
                                 ),
                                 onPressed: () {
                                   context.push('/view-all-parties');
@@ -2081,14 +2112,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               children: [
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
+                                    color: AppTheme.colors.background,
                                     shape: BoxShape.circle,
                                   ),
                                   child: IconButton(
                                     icon: Icon(
                                       Icons.notifications_none,
                                       color: AppTheme.colors.textSecondary,
-                                      size: 24,
+                                      size: 22,
                                     ),
                                     onPressed: () => context.push('/activity'),
                                   ),
@@ -2130,7 +2161,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           // Main content below sticky bar
           Padding(
-            padding: EdgeInsets.only(top: kToolbarHeight + MediaQuery.of(context).padding.top),
+            padding: EdgeInsets.only(
+              top: kToolbarHeight + MediaQuery.of(context).padding.top + 24,
+            ),
             child: CustomRefreshIndicator(
               onRefresh: () async {
                 print('Pull-to-refresh triggered');
@@ -2176,33 +2209,61 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   children: [
                     // Greeting and date selector
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 7),
                       child: Consumer<AuthService>(
                         builder: (context, auth, child) {
-                          final userName = auth.currentUser?.displayName ?? 'User';
+                          final userName =
+                              auth.currentUser?.displayName ?? 'User';
                           final firstName = userName.split(' ').first;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Hey, $firstName',
-                                    style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w900,
-                                      color: Color(0xFF111827),
-                                      height: 1.2,
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                  _buildLocationDropdown(),
-                                ],
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.90),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.92),
+                                width: 1.4,
                               ),
-                              const SizedBox(height: 24),
-                              _buildDateSelector(),
-                            ],
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      AppTheme.colors.primary.withOpacity(0.09),
+                                  blurRadius: 22,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Hey, $firstName',
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w900,
+                                          color: Color(0xFF111827),
+                                          height: 1.02,
+                                          letterSpacing: -0.4,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _buildLocationIcon(),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                _buildDateSelector(),
+                              ],
+                            ),
                           );
                         },
                       ),
@@ -2241,27 +2302,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildFeedContent() {
     return Column(
       children: [
-        // Join the fun now Feed Item (moved to first position) - only show if there are ongoing parties
+        // Ongoing stories section with circles directly in feed content
         FutureBuilder<List<Party>>(
           future: _ongoingPartiesFuture ?? Future.value(<Party>[]),
           builder: (context, snapshot) {
-            // Only show the section if we have data and there are parties
             if (snapshot.hasData && snapshot.data!.isNotEmpty) {
               return Column(
                 children: [
-                  _buildFeedItem(
-                    title: 'Join the fun now',
-                    subtitle: 'Parties happening right now',
-                    color: const Color(0xFF00B894),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: _buildOngoingTab(),
-                    onTap: () => context.push('/view-all-parties'),
                   ),
-                  const SizedBox(
-                      height: 8), // Much reduced spacing between sections
+                  const SizedBox(height: 8),
                 ],
               );
             }
-            // Hide the section if no parties or still loading
             return const SizedBox.shrink();
           },
         ),
@@ -2269,8 +2324,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         Column(
           children: [
             _buildFeedItem(
-              title: 'The Social Radar',
-              subtitle: 'What\'s happening next?',
+              title: 'For You',
+              subtitle: '',
               color: const Color(0xFF6C5CE7),
               child: _buildUpcomingTab(),
               onTap: () => context.push('/view-all-parties'),
@@ -2282,8 +2337,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         Column(
           children: [
             _buildFeedItem(
-              title: 'The Maxed Out Zone',
-              subtitle: 'Packed and lively parties',
+              title: 'Trending Now',
+              subtitle: '',
               color: const Color(0xFFFF7675),
               child: _buildHugeCrowdTab(),
               onTap: () => context.push('/view-all-parties'),
@@ -2294,8 +2349,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         // Introvert Gathering (copied from upcoming)
         _buildFeedItem(
-          title: 'Low-Key Corners',
-          subtitle: 'Chill and cozy vibes',
+          title: 'Recommended',
+          subtitle: '',
           color: const Color(0xFF74B9FF),
           child: _buildIntrovertTab(),
           onTap: () => context.push('/view-all-parties'),
@@ -2312,60 +2367,121 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required VoidCallback onTap,
     bool showViewAll = false,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header - no card styling
-        Padding(
-          // increase vertical padding for clearer touch targets
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: _sectionHeaderStyle,
-                ),
-              ),
-              if (showViewAll)
-                TextButton(
-                  onPressed: onTap,
-                  style: TextButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    minimumSize: const Size(0, 0),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.90),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.92),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.colors.primary.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title.isNotEmpty || subtitle.isNotEmpty)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (title.isNotEmpty) ...[
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF111827),
+                            height: 1.05,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      if (subtitle.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            subtitle,
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  child: Text(
-                    'View all',
-                    style: TextStyle(
-                      color: AppTheme.colors.primary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                ),
+                if (showViewAll)
+                  TextButton(
+                    onPressed: onTap,
+                    style: TextButton.styleFrom(
+                      backgroundColor: AppTheme.colors.background,
+                      foregroundColor: AppTheme.colors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'View all',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlainSection({required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.90),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.92),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.colors.primary.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
-        ),
-        // Content - no card styling, aligned with title
-        Padding(
-          padding: const EdgeInsets.only(right: 0),
-          child: child,
-        ),
-        const SizedBox(height: 12),
-        // subtle divider to separate feed sections
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Divider(
-            height: 1,
-            thickness: 1,
-            color: Colors.grey.shade200,
-          ),
-        ),
-        const SizedBox(height: 8),
-      ],
+        ],
+      ),
+      child: child,
     );
   }
 
@@ -2431,7 +2547,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         if (filteredParties.isEmpty) {
           // Check if a specific date was selected
           if (_selectedDateForQuickAccess != null) {
-            final dateStr = DateFormat('MMM d').format(_selectedDateForQuickAccess!);
+            final dateStr =
+                DateFormat('MMM d').format(_selectedDateForQuickAccess!);
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -2504,8 +2621,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         print('_buildIntrovertTab - HasData: ${snapshot.hasData}');
         print('_buildIntrovertTab - HasError: ${snapshot.hasError}');
         if (snapshot.hasData) {
-          print(
-              '_buildIntrovertTab - Data length: ${snapshot.data!.length}');
+          print('_buildIntrovertTab - Data length: ${snapshot.data!.length}');
         }
         if (snapshot.hasError) {
           print('_buildIntrovertTab - Error: ${snapshot.error}');
@@ -2516,7 +2632,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           if (_selectedDateForQuickAccess != null) {
-            final dateStr = DateFormat('MMM d').format(_selectedDateForQuickAccess!);
+            final dateStr =
+                DateFormat('MMM d').format(_selectedDateForQuickAccess!);
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -3283,22 +3400,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         final displayParties = parties.take(10).toList();
 
         return SizedBox(
-          height: 380,
+          height: 120,
           child: ListView.separated(
-            padding:
-                const EdgeInsets.only(left: 24, right: 24, top: 8, bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             scrollDirection: Axis.horizontal,
             itemCount: displayParties.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 16),
+            separatorBuilder: (context, index) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final party = displayParties[index];
               return SizedBox(
-                width: 300,
+                width: 96,
                 child: OngoingPartyCard(
                   party: party,
                   userLatitude: _userLatitude,
                   userLongitude: _userLongitude,
                   showNowBadge: true,
+                  storyStyle: true,
                 ),
               );
             },
@@ -3613,10 +3730,10 @@ class _SimplePartyCardState extends State<_SimplePartyCard> {
                             'Firebase user: ${authService.firebaseUser?.uid}');
 
                         final firebaseUser = authService.firebaseUser;
-                                          if (firebaseUser == null) {
-                                            // Guest users: do not show sign-in popup. Ignore save action.
-                                            return;
-                                          }
+                        if (firebaseUser == null) {
+                          // Guest users: do not show sign-in popup. Ignore save action.
+                          return;
+                        }
 
                         try {
                           if (_isFavorited) {
@@ -4572,4 +4689,3 @@ class _ClubCardState extends State<_ClubCard> {
     );
   }
 }
-

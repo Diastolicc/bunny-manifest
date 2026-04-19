@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -37,6 +39,9 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
   bool _isJoined = false;
   String? _applicationId;
   bool _isFavorited = false;
+  bool _isJoiningRequest = false;
+  bool _isCancellingRequest = false;
+  OverlayEntry? _toastOverlayEntry;
 
   @override
   void initState() {
@@ -62,9 +67,41 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
 
   @override
   void dispose() {
+    _toastOverlayEntry?.remove();
     _slideController.dispose();
     _bunnyController.dispose();
     super.dispose();
+  }
+
+  void _showModernToast({
+    required String message,
+    required IconData icon,
+    required Color accentColor,
+  }) {
+    if (!mounted) return;
+
+    _toastOverlayEntry?.remove();
+
+    final overlay = Overlay.of(context, rootOverlay: true);
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _ModernToast(
+        message: message,
+        icon: icon,
+        accentColor: accentColor,
+      ),
+    );
+
+    overlay.insert(entry);
+    _toastOverlayEntry = entry;
+
+    Future<void>.delayed(const Duration(milliseconds: 2200), () {
+      if (_toastOverlayEntry == entry) {
+        _toastOverlayEntry?.remove();
+        _toastOverlayEntry = null;
+      }
+    });
   }
 
   Future<void> _loadPartyData() async {
@@ -74,14 +111,15 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
       final firebaseUser = authService.firebaseUser;
       if (firebaseUser != null) {
         final savedService = context.read<SavedService>();
-        final isSaved = await savedService.isPartySaved(firebaseUser.uid, widget.party.id);
+        final isSaved =
+            await savedService.isPartySaved(firebaseUser.uid, widget.party.id);
         if (mounted) {
           setState(() {
             _isFavorited = isSaved;
           });
         }
       }
-      
+
       // First, try to get party data from local cache
       final cachedParty =
           await LocalCacheService.getCachedParty(widget.party.id);
@@ -227,6 +265,8 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
   }
 
   Future<void> _handleJoinParty() async {
+    if (_isJoiningRequest) return;
+
     final auth = context.read<AuthService>();
     if (auth.isGuest) {
       // Handle guest user prompt - Go to login screen
@@ -236,32 +276,37 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
 
     // Check if party is accepting requests
     if (!widget.party.isAcceptingRequests) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This party is not accepting requests at the moment'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
-        ),
+      _showModernToast(
+        message: 'This party is not accepting requests right now',
+        icon: Icons.lock_clock_rounded,
+        accentColor: const Color(0xFFF59E0B),
       );
       return;
     }
 
     // Check if already joined
     if (_isJoined) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You\'re already part of this party!'),
-          duration: Duration(seconds: 2),
-        ),
+      _showModernToast(
+        message: 'You are already part of this party',
+        icon: Icons.check_circle_rounded,
+        accentColor: const Color(0xFF22C55E),
       );
       return;
     }
 
     try {
+      if (mounted) {
+        setState(() {
+          _isJoiningRequest = true;
+        });
+      }
+
       final userId = auth.firebaseUser?.uid;
       if (userId == null || userId.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Not signed in.')),
+        _showModernToast(
+          message: 'Not signed in',
+          icon: Icons.person_off_rounded,
+          accentColor: const Color(0xFFEF4444),
         );
         return;
       }
@@ -290,36 +335,45 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
                 );
           }
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Join request sent!'),
-              duration: Duration(seconds: 2),
-            ),
+          _showModernToast(
+            message: 'Join request sent',
+            icon: Icons.mark_chat_unread_rounded,
+            accentColor: const Color(0xFF22C55E),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('You already requested or joined.'),
-              duration: Duration(seconds: 2),
-            ),
+          _showModernToast(
+            message: 'You already requested or joined',
+            icon: Icons.info_rounded,
+            accentColor: const Color(0xFFF59E0B),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error joining party: $e'),
-            duration: const Duration(seconds: 2),
-          ),
+        _showModernToast(
+          message: 'Error joining party',
+          icon: Icons.error_rounded,
+          accentColor: const Color(0xFFEF4444),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isJoiningRequest = false;
+        });
       }
     }
   }
 
   Future<void> _handleCancelApplication() async {
-    if (_applicationId == null) return;
+    if (_applicationId == null || _isCancellingRequest) return;
     try {
+      if (mounted) {
+        setState(() {
+          _isCancellingRequest = true;
+        });
+      }
+
       await context
           .read<PartyService>()
           .rejectApplication(applicationId: _applicationId!);
@@ -328,15 +382,25 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
           _isPending = false;
           _applicationId = null;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Application cancelled')),
+        _showModernToast(
+          message: 'Application cancelled',
+          icon: Icons.cancel_rounded,
+          accentColor: const Color(0xFF38BDF8),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to cancel: $e')),
+        _showModernToast(
+          message: 'Failed to cancel application',
+          icon: Icons.error_outline_rounded,
+          accentColor: const Color(0xFFEF4444),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCancellingRequest = false;
+        });
       }
     }
   }
@@ -359,23 +423,21 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
       } else {
         // Chat group doesn't exist yet, show message
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'Chat not available yet. It will be created when the party starts.'),
-              duration: Duration(seconds: 3),
-            ),
+          _showModernToast(
+            message:
+                'Chat not available yet. It will be created when the party starts.',
+            icon: Icons.forum_outlined,
+            accentColor: const Color(0xFFF59E0B),
           );
         }
       }
     } catch (e) {
       print('Error navigating to party chat: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error opening chat: $e'),
-            duration: const Duration(seconds: 2),
-          ),
+        _showModernToast(
+          message: 'Error opening chat',
+          icon: Icons.error_rounded,
+          accentColor: const Color(0xFFEF4444),
         );
       }
     }
@@ -423,40 +485,37 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
                     // Guest users: do not show sign-in popup. Ignore save action.
                     return;
                   }
-                  
+
                   try {
                     final savedService = context.read<SavedService>();
                     if (_isFavorited) {
-                      await savedService.removeSavedParty(firebaseUser.uid, widget.party.id);
+                      await savedService.removeSavedParty(
+                          firebaseUser.uid, widget.party.id);
                       setState(() {
                         _isFavorited = false;
                       });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Removed from saved'),
-                          duration: Duration(seconds: 1),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                      _showModernToast(
+                        message: 'Removed from saved',
+                        icon: Icons.bookmark_remove_rounded,
+                        accentColor: const Color(0xFFF59E0B),
                       );
                     } else {
-                      await savedService.saveParty(firebaseUser.uid, widget.party.id);
+                      await savedService.saveParty(
+                          firebaseUser.uid, widget.party.id);
                       setState(() {
                         _isFavorited = true;
                       });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Saved for later'),
-                          duration: Duration(seconds: 1),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                      _showModernToast(
+                        message: 'Saved for later',
+                        icon: Icons.bookmark_added_rounded,
+                        accentColor: const Color(0xFF22C55E),
                       );
                     }
                   } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        duration: const Duration(seconds: 2),
-                      ),
+                    _showModernToast(
+                      message: 'Failed to update saved party',
+                      icon: Icons.error_outline_rounded,
+                      accentColor: const Color(0xFFEF4444),
                     );
                   }
                 },
@@ -613,7 +672,8 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
           _buildSectionTitle('Participants'),
           const SizedBox(height: 12),
           Padding(
-            padding: const EdgeInsets.only(left: 0), // Removed padding to align with other fields
+            padding: const EdgeInsets.only(
+                left: 0), // Removed padding to align with other fields
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -847,7 +907,10 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: const LinearGradient(
-            colors: [Color(0xFF321857), Color(0xFF5D369F)], // Deep purple gradient
+            colors: [
+              Color(0xFF321857),
+              Color(0xFF5D369F)
+            ], // Deep purple gradient
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -863,8 +926,10 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
                 ),
               ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center, // Center vertically
-                crossAxisAlignment: CrossAxisAlignment.center, // Center horizontally
+                mainAxisAlignment:
+                    MainAxisAlignment.center, // Center vertically
+                crossAxisAlignment:
+                    CrossAxisAlignment.center, // Center horizontally
                 children: [
                   Text(
                     getMonthName(widget.party.dateTime.month),
@@ -890,8 +955,10 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
             // Time & Day Info
             Expanded(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center, // Center vertically
-                crossAxisAlignment: CrossAxisAlignment.center, // Center horizontally
+                mainAxisAlignment:
+                    MainAxisAlignment.center, // Center vertically
+                crossAxisAlignment:
+                    CrossAxisAlignment.center, // Center horizontally
                 children: [
                   Text(
                     getDayName(widget.party.dateTime.weekday),
@@ -904,7 +971,8 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    TimeOfDay.fromDateTime(widget.party.dateTime).format(context),
+                    TimeOfDay.fromDateTime(widget.party.dateTime)
+                        .format(context),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.8),
@@ -1170,29 +1238,18 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
       await Clipboard.setData(ClipboardData(text: widget.party.inviteCode));
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.check, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Text('Invite code copied to clipboard!'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
+        _showModernToast(
+          message: 'Invite code copied to clipboard',
+          icon: Icons.copy_rounded,
+          accentColor: const Color(0xFF22C55E),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to copy invite code: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
+        _showModernToast(
+          message: 'Failed to copy invite code',
+          icon: Icons.error_outline_rounded,
+          accentColor: const Color(0xFFEF4444),
         );
       }
     }
@@ -1201,12 +1258,13 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
   Widget _buildJoinButton() {
     final auth = context.read<AuthService>();
     final isHost = auth.currentUser?.id == widget.party.hostUserId;
+    const double actionBarRadius = 30;
 
     if (isHost) {
       return Positioned(
         bottom: 20,
-        left: 20,
-        right: 20,
+        left: 24,
+        right: 24,
         child: GestureDetector(
           onTap: () {
             // Navigate to My Parties screen
@@ -1216,7 +1274,7 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
           child: Container(
             decoration: BoxDecoration(
               color: Theme.of(context).primaryColor,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(actionBarRadius),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.2),
@@ -1225,17 +1283,17 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
                 ),
               ],
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.settings, color: Colors.white, size: 20),
+                Icon(Icons.settings, color: Colors.white, size: 18),
                 SizedBox(width: 8),
                 Text(
                   'Manage Party',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1248,8 +1306,8 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
 
     return Positioned(
       bottom: 20,
-      left: 20,
-      right: 20,
+      left: 24,
+      right: 24,
       child: AnimatedBuilder(
         animation: _bunnyAnimation,
         builder: (context, child) {
@@ -1258,10 +1316,13 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
                 0, _bunnyAnimation.value * 15 * (1 - _bunnyAnimation.value)),
             child: Container(
               decoration: BoxDecoration(
-                color: !_isJoined && !_isPending && !widget.party.isAcceptingRequests
+                color: !_isJoined &&
+                        !_isPending &&
+                        !widget.party.isAcceptingRequests
                     ? Colors.grey.shade600
                     : Theme.of(context).primaryColor,
-                borderRadius: BorderRadius.circular(16), // Match other elements
+                borderRadius:
+                    BorderRadius.circular(actionBarRadius), // Pill style
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.2),
@@ -1273,18 +1334,18 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
               child: _isJoined
                   ? Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
+                          horizontal: 18, vertical: 10),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.check_circle,
-                              color: Colors.white, size: 20),
+                              color: Colors.white, size: 18),
                           const SizedBox(width: 8),
                           const Text(
                             'You\'re part of this party!',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1317,18 +1378,18 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
                   : _isPending
                       ? Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
+                              horizontal: 18, vertical: 10),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(Icons.hourglass_bottom,
-                                  color: Colors.white, size: 20),
+                                  color: Colors.white, size: 18),
                               const SizedBox(width: 8),
                               const Text(
                                 'Pending approval',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -1341,15 +1402,22 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: GestureDetector(
-                                  onTap: _handleCancelApplication,
-                                  child: const Text(
-                                    'Cancel',
-                                    style: TextStyle(
-                                      color: Colors.black87,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                                  onTap: _isCancellingRequest
+                                      ? null
+                                      : _handleCancelApplication,
+                                  child: _isCancellingRequest
+                                      ? const _JoinButtonSpinner(
+                                          size: 14,
+                                          color: Colors.black87,
+                                        )
+                                      : const Text(
+                                          'Cancel',
+                                          style: TextStyle(
+                                            color: Colors.black87,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ],
@@ -1357,41 +1425,55 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
                         )
                       : Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 14),
+                              horizontal: 20, vertical: 12),
                           child: GestureDetector(
-                            onTap: widget.party.isAcceptingRequests 
-                                ? _handleJoinParty 
+                            onTap: (widget.party.isAcceptingRequests &&
+                                    !_isJoiningRequest)
+                                ? _handleJoinParty
                                 : null,
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  widget.party.isAcceptingRequests
-                                      ? (context.read<AuthService>().isGuest
-                                          ? Icons.login
-                                          : Icons.person_add)
-                                      : Icons.block,
-                                  color: widget.party.isAcceptingRequests 
-                                      ? Colors.white 
-                                      : Colors.white70,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  widget.party.isAcceptingRequests
-                                      ? (context.read<AuthService>().isGuest
-                                          ? 'Sign In to Continue'
-                                          : 'Join Party')
-                                      : 'Not Accepting Requests',
-                                  style: TextStyle(
-                                    color: widget.party.isAcceptingRequests 
-                                        ? Colors.white 
-                                        : Colors.white70,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
+                                if (_isJoiningRequest) ...[
+                                  const _JoinButtonSpinner(),
+                                  const SizedBox(width: 10),
+                                  const Text(
+                                    'Sending request...',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
-                                ),
+                                ] else ...[
+                                  Icon(
+                                    widget.party.isAcceptingRequests
+                                        ? (context.read<AuthService>().isGuest
+                                            ? Icons.login
+                                            : Icons.person_add)
+                                        : Icons.block,
+                                    color: widget.party.isAcceptingRequests
+                                        ? Colors.white
+                                        : Colors.white70,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    widget.party.isAcceptingRequests
+                                        ? (context.read<AuthService>().isGuest
+                                            ? 'Sign In to Continue'
+                                            : 'Join Party')
+                                        : 'Not Accepting Requests',
+                                    style: TextStyle(
+                                      color: widget.party.isAcceptingRequests
+                                          ? Colors.white
+                                          : Colors.white70,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -1402,7 +1484,6 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -1482,5 +1563,228 @@ class _PartyDetailsScreenState extends State<PartyDetailsScreen>
         ),
       );
     }
+  }
+}
+
+class _JoinButtonSpinner extends StatefulWidget {
+  final double size;
+  final Color color;
+
+  const _JoinButtonSpinner({
+    this.size = 18,
+    this.color = Colors.white,
+  });
+
+  @override
+  State<_JoinButtonSpinner> createState() => _JoinButtonSpinnerState();
+}
+
+class _JoinButtonSpinnerState extends State<_JoinButtonSpinner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 900),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        return Transform.rotate(
+          angle: _controller.value * 2 * math.pi,
+          child: CustomPaint(
+            size: Size(widget.size, widget.size),
+            painter: _JoinButtonSpinnerPainter(
+              progress: _controller.value,
+              color: widget.color,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _JoinButtonSpinnerPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+
+  const _JoinButtonSpinnerPainter({
+    required this.progress,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width / 2) - 1.5;
+
+    final ringPaint = Paint()
+      ..color = color.withOpacity(0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8;
+
+    final activeArcPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, ringPaint);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      progress * 2 * math.pi,
+      math.pi * 0.9,
+      false,
+      activeArcPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _JoinButtonSpinnerPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
+
+class _ModernToast extends StatefulWidget {
+  final String message;
+  final IconData icon;
+  final Color accentColor;
+
+  const _ModernToast({
+    required this.message,
+    required this.icon,
+    required this.accentColor,
+  });
+
+  @override
+  State<_ModernToast> createState() => _ModernToastState();
+}
+
+class _ModernToastState extends State<_ModernToast> {
+  bool _visible = false;
+
+  Color _getToastBackground() {
+    final accentValue = widget.accentColor.value;
+
+    if (accentValue == const Color(0xFF22C55E).value) {
+      return const Color(0xFFE9F7EF);
+    }
+
+    if (accentValue == const Color(0xFFEF4444).value) {
+      return const Color(0xFFFDEBEC);
+    }
+
+    if (accentValue == const Color(0xFFF59E0B).value) {
+      return const Color(0xFFFBF2DA);
+    }
+
+    return const Color(0xFFE7F1FB);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(() {
+      if (mounted) {
+        setState(() {
+          _visible = true;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final background = _getToastBackground();
+
+    return IgnorePointer(
+      child: SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: AnimatedSlide(
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeOutQuart,
+            offset: _visible ? Offset.zero : const Offset(0.16, 0),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 260),
+              opacity: _visible ? 1 : 0,
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                constraints: const BoxConstraints(maxWidth: 460),
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.11),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: widget.accentColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  widget.icon,
+                                  color: Colors.white,
+                                  size: 21,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  widget.message,
+                                  style: const TextStyle(
+                                    color: Color(0xFF101828),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.2,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

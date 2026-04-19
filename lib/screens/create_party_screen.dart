@@ -47,6 +47,7 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
   bool _showStatusOverlay = false;
   bool _isSuccess = false;
   double _overlayOpacity = 0.0;
+  OverlayEntry? _toastOverlayEntry;
 
   // Location and club suggestions
   String _currentCity = 'Loading...';
@@ -151,12 +152,44 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
 
   @override
   void dispose() {
+    _toastOverlayEntry?.remove();
     _titleController.dispose();
     _descriptionController.dispose();
     _budgetController.dispose();
     _venueSearchController.dispose();
     _entranceFeeController.dispose();
     super.dispose();
+  }
+
+  void _showModernToast({
+    required String message,
+    required IconData icon,
+    required Color accentColor,
+  }) {
+    if (!mounted) return;
+
+    _toastOverlayEntry?.remove();
+
+    final overlay = Overlay.of(context, rootOverlay: true);
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _ModernToast(
+        message: message,
+        icon: icon,
+        accentColor: accentColor,
+      ),
+    );
+
+    overlay.insert(entry);
+    _toastOverlayEntry = entry;
+
+    Future<void>.delayed(const Duration(milliseconds: 2200), () {
+      if (_toastOverlayEntry == entry) {
+        _toastOverlayEntry?.remove();
+        _toastOverlayEntry = null;
+      }
+    });
   }
 
   Future<void> _getCurrentLocation() async {
@@ -395,14 +428,18 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
         _fillWithEditParty();
       } else {
         print('Error: Party not found with ID: ${widget.partyId}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Party not found')),
+        _showModernToast(
+          message: 'Party not found',
+          icon: Icons.error_outline_rounded,
+          accentColor: const Color(0xFFEF4444),
         );
       }
     } catch (e) {
       print('Error loading edit party: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading party: $e')),
+      _showModernToast(
+        message: 'Error loading party',
+        icon: Icons.error_rounded,
+        accentColor: const Color(0xFFEF4444),
       );
     } finally {
       setState(() {
@@ -502,12 +539,10 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
     });
 
     // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Previous party details loaded!'),
-        backgroundColor: AppTheme.colors.primary,
-        duration: const Duration(seconds: 2),
-      ),
+    _showModernToast(
+      message: 'Previous party details loaded',
+      icon: Icons.check_circle_rounded,
+      accentColor: const Color(0xFF22C55E),
     );
   }
 
@@ -589,8 +624,10 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
+        _showModernToast(
+          message: 'Error picking image',
+          icon: Icons.error_outline_rounded,
+          accentColor: const Color(0xFFEF4444),
         );
       }
     }
@@ -614,14 +651,18 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image uploaded successfully!')),
+        _showModernToast(
+          message: 'Image uploaded successfully',
+          icon: Icons.check_circle_rounded,
+          accentColor: const Color(0xFF22C55E),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error uploading image: $e')),
+        _showModernToast(
+          message: 'Error uploading image',
+          icon: Icons.error_outline_rounded,
+          accentColor: const Color(0xFFEF4444),
         );
       }
     }
@@ -632,16 +673,19 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
     if (auth.currentUser == null) return;
 
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a party title')),
+      _showModernToast(
+        message: 'Please enter a party title',
+        icon: Icons.warning_amber_rounded,
+        accentColor: const Color(0xFFF59E0B),
       );
       return;
     }
 
     if (!_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please agree to the terms and conditions')),
+      _showModernToast(
+        message: 'Please agree to the terms and conditions',
+        icon: Icons.warning_amber_rounded,
+        accentColor: const Color(0xFFF59E0B),
       );
       return;
     }
@@ -806,13 +850,10 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
               print('Stack trace: $stackTrace');
               // If push fails, show error and just pop to go back
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content:
-                        Text('Party created! Error navigating to invite: $e'),
-                    backgroundColor: Colors.orange,
-                    duration: const Duration(seconds: 3),
-                  ),
+                _showModernToast(
+                  message: 'Party created but failed to open invite screen',
+                  icon: Icons.warning_amber_rounded,
+                  accentColor: const Color(0xFFF59E0B),
                 );
                 // Only pop if we can
                 if (Navigator.of(context).canPop()) {
@@ -828,8 +869,10 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating party: $e')),
+        _showModernToast(
+          message: 'Error creating party',
+          icon: Icons.error_rounded,
+          accentColor: const Color(0xFFEF4444),
         );
       }
     } finally {
@@ -1216,9 +1259,9 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
                                           ),
                                         ),
                                         child: Center(
-                                          child: CircularProgressIndicator(
+                                          child: _ModernSpinner(
+                                            size: 34,
                                             color: Colors.grey.shade700,
-                                            strokeWidth: 3,
                                           ),
                                         ),
                                       ),
@@ -1383,9 +1426,9 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
                                       ),
                                     ),
                                     child: const Center(
-                                      child: CircularProgressIndicator(
+                                      child: _ModernSpinner(
+                                        size: 34,
                                         color: Colors.white,
-                                        strokeWidth: 3,
                                       ),
                                     ),
                                   ),
@@ -1485,7 +1528,7 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
       return const Padding(
         padding: EdgeInsets.all(16),
         child: Center(
-          child: CircularProgressIndicator(),
+          child: _ModernSpinner(size: 22, color: Colors.black87),
         ),
       );
     }
@@ -2212,7 +2255,8 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
                               return const Center(
-                                  child: CircularProgressIndicator());
+                                child: _ModernSpinner(
+                                  size: 22, color: Colors.black87));
                             }
                             if (!snapshot.hasData || snapshot.data!.isEmpty) {
                               return const Center(
@@ -2802,10 +2846,7 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
             ? const SizedBox(
                 height: 24,
                 width: 24,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
+                child: _ModernSpinner(size: 20, color: Colors.white),
               )
             : const Text(
                 'Create Party',
@@ -3383,7 +3424,7 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
               const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: _ModernSpinner(size: 18, color: Colors.black87),
               ),
               const SizedBox(width: 12),
               Text(
@@ -3420,7 +3461,7 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
               const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: _ModernSpinner(size: 18, color: Colors.blue),
               ),
               const SizedBox(width: 12),
               Text(
@@ -3575,7 +3616,13 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
   }
 }
 class _ModernSpinner extends StatefulWidget {
-  const _ModernSpinner();
+  final double size;
+  final Color color;
+
+  const _ModernSpinner({
+    this.size = 24,
+    this.color = Colors.white,
+  });
 
   @override
   State<_ModernSpinner> createState() => _ModernSpinnerState();
@@ -3606,10 +3653,13 @@ class _ModernSpinnerState extends State<_ModernSpinner>
       animation: _controller,
       builder: (context, child) {
         return Transform.rotate(
-          angle: _controller.value * 2 * 3.14159,
+          angle: _controller.value * 2 * pi,
           child: CustomPaint(
-            painter: _SpinnerPainter(_controller.value),
-            size: const Size(24, 24),
+            painter: _SpinnerPainter(
+              progress: _controller.value,
+              color: widget.color,
+            ),
+            size: Size(widget.size, widget.size),
           ),
         );
       },
@@ -3619,50 +3669,163 @@ class _ModernSpinnerState extends State<_ModernSpinner>
 
 class _SpinnerPainter extends CustomPainter {
   final double progress;
+  final Color color;
 
-  _SpinnerPainter(this.progress);
+  const _SpinnerPainter({
+    required this.progress,
+    required this.color,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 2;
+    final radius = (size.width / 2) - 1.5;
 
-    // Draw the spinning arc
+    final ringPaint = Paint()
+      ..color = color.withOpacity(0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8;
+
+    final activeArcPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, ringPaint);
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      progress * 2 * 3.14159,
-      1.5,
+      progress * 2 * pi,
+      pi * 0.9,
       false,
-      paint,
+      activeArcPaint,
     );
-
-    // Draw rotating dots
-    final dotRadius = 1.5;
-    for (int i = 0; i < 3; i++) {
-      final angle = (progress * 2 * 3.14159) + (i * 2.09); // 120 degrees apart
-      final dotX = center.dx + radius * 0.7 * cos(angle);
-      final dotY = center.dy + radius * 0.7 * sin(angle);
-      
-      final dotPaint = Paint()
-        ..color = Colors.white.withOpacity(1 - (i * 0.3))
-        ..style = PaintingStyle.fill;
-
-      canvas.drawCircle(
-        Offset(dotX, dotY),
-        dotRadius,
-        dotPaint,
-      );
-    }
   }
 
   @override
   bool shouldRepaint(_SpinnerPainter oldDelegate) {
-    return oldDelegate.progress != progress;
+    return oldDelegate.progress != progress || oldDelegate.color != color;
+  }
+}
+
+class _ModernToast extends StatefulWidget {
+  final String message;
+  final IconData icon;
+  final Color accentColor;
+
+  const _ModernToast({
+    required this.message,
+    required this.icon,
+    required this.accentColor,
+  });
+
+  @override
+  State<_ModernToast> createState() => _ModernToastState();
+}
+
+class _ModernToastState extends State<_ModernToast> {
+  bool _visible = false;
+
+  Color _getToastBackground() {
+    final accentValue = widget.accentColor.value;
+
+    if (accentValue == const Color(0xFF22C55E).value) {
+      return const Color(0xFFE9F7EF);
+    }
+
+    if (accentValue == const Color(0xFFEF4444).value) {
+      return const Color(0xFFFDEBEC);
+    }
+
+    if (accentValue == const Color(0xFFF59E0B).value) {
+      return const Color(0xFFFBF2DA);
+    }
+
+    return const Color(0xFFE7F1FB);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(() {
+      if (mounted) {
+        setState(() {
+          _visible = true;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final background = _getToastBackground();
+
+    return IgnorePointer(
+      child: SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: AnimatedSlide(
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeOutQuart,
+            offset: _visible ? Offset.zero : const Offset(0.16, 0),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 260),
+              opacity: _visible ? 1 : 0,
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                constraints: const BoxConstraints(maxWidth: 460),
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.11),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: widget.accentColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          widget.icon,
+                          color: Colors.white,
+                          size: 21,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          widget.message,
+                          style: const TextStyle(
+                            color: Color(0xFF101828),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            height: 1.2,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

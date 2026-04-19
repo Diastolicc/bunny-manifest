@@ -23,12 +23,13 @@ class MyPartiesScreen extends StatefulWidget {
 
 class _MyPartiesScreenState extends State<MyPartiesScreen>
     with SingleTickerProviderStateMixin {
+  static const double _toggleRadius = 36;
   String _selectedFilter = 'upcoming'; // upcoming, ongoing, past
   bool _isHostView = false; // false = Joiner, true = Host
   List<Party> _parties = [];
   bool _isLoading = true;
   ScrollController _scrollController = ScrollController();
-  bool _showScrollbar = false;
+  bool _isHeroCollapsed = false;
   bool _hasRequestedInitialLoad = false;
   late TabController _tabController;
 
@@ -89,10 +90,10 @@ class _MyPartiesScreenState extends State<MyPartiesScreen>
 
   void _onScroll() {
     if (_scrollController.hasClients) {
-      final isScrolling = _scrollController.position.isScrollingNotifier.value;
-      if (_showScrollbar != isScrolling) {
+      final shouldCollapse = _scrollController.offset > 72;
+      if (_isHeroCollapsed != shouldCollapse) {
         setState(() {
-          _showScrollbar = isScrolling;
+          _isHeroCollapsed = shouldCollapse;
         });
       }
     }
@@ -258,387 +259,652 @@ class _MyPartiesScreenState extends State<MyPartiesScreen>
 
   // Removed unused helpers after redesign
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      body: Column(
+  Widget _buildHeroHeader() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        MediaQuery.of(context).padding.top + 20,
+        24,
+        18,
+      ),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.colors.primary.withOpacity(0.18),
+            Colors.white,
+            AppTheme.colors.secondary.withOpacity(0.12),
+          ],
+        ),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.7),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.colors.primary.withOpacity(0.10),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with tabs and filter pills combined into a single card
           Container(
-            width: double.infinity,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 24,
-              bottom: 24,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(999),
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _isHostView ? 'HOSTING' : 'JOINING',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      // Toggle Switch with Icons
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _isHostView = !_isHostView;
-                            _tabController.index = _isHostView ? 1 : 0;
-                          });
-                        },
-                        child: Container(
-                          width: 100,
-                          height: 44,
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                          child: Stack(
-                            children: [
-                              // Animated toggle circle
-                              AnimatedAlign(
-                                alignment: _isHostView
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
-                                duration: const Duration(milliseconds: 200),
-                                curve: Curves.easeInOut,
-                                child: Container(
-                                  width: 46,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.colors.primary,
-                                    borderRadius: BorderRadius.circular(18),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Icon(
-                                    _isHostView
-                                        ? Icons.person_outline
-                                        : Icons.group_outlined,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                              // Labels
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Expanded(
-                                    child: Center(
-                                      child: Text(
-                                        'Join',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: _isHostView
-                                              ? Colors.grey.shade600
-                                              : Colors.transparent,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Center(
-                                      child: Text(
-                                        'Host',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: !_isHostView
-                                              ? Colors.grey.shade600
-                                              : Colors.transparent,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                Icon(
+                  Icons.celebration_outlined,
+                  size: 16,
+                  color: AppTheme.colors.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _isHostView ? 'HOST MODE' : 'JOIN MODE',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                    color: AppTheme.colors.primary,
                   ),
                 ),
               ],
             ),
           ),
-          // Content
-          Expanded(
-            child: Stack(
-              children: [
-                Consumer<AuthService>(
-                  builder: (context, auth, child) {
-                    if (auth.currentUser == null) {
-                      return CustomRefreshIndicator(
-                        onRefresh: _refreshData,
-                        builder: (context, child, controller) {
-                          return AnimatedBuilder(
-                            animation: controller,
-                            builder: (context, _) {
-                              return Stack(
-                                children: [
-                                  Transform.translate(
-                                    offset: Offset(0, controller.value * 100),
-                                    child: child,
-                                  ),
-                                  if (controller.isLoading ||
-                                      controller.value > 0)
-                                    Positioned(
-                                      top: 20 + (controller.value * 50),
-                                      left: 0,
-                                      right: 0,
-                                      child: Center(
-                                        child: SpinKitWaveSpinner(
-                                          color: AppTheme.colors.primary,
-                                          size: 40.0,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              );
-                            },
-                          );
-                        },
-                        child: ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.6,
-                              child: _buildEmptyState(),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
+          const SizedBox(height: 18),
+          Text(
+            _isHostView ? 'Your hosted\nplans' : 'Your party\nlineup',
+            style: TextStyle(
+              fontSize: 42,
+              height: 0.96,
+              fontWeight: FontWeight.w900,
+              color: AppTheme.colors.text,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            _isHostView
+                ? 'Manage the nights you are running with cleaner controls and quick status views.'
+                : 'Keep every invite, active party, and past night in one bold, easy-to-scan place.',
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.45,
+              color: AppTheme.colors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    if (_isLoading) {
-                      return CustomRefreshIndicator(
-                        onRefresh: _refreshData,
-                        builder: (context, child, controller) {
-                          return AnimatedBuilder(
-                            animation: controller,
-                            builder: (context, _) {
-                              return Stack(
-                                children: [
-                                  Transform.translate(
-                                    offset: Offset(0, controller.value * 100),
-                                    child: child,
-                                  ),
-                                  if (controller.isLoading ||
-                                      controller.value > 0)
-                                    Positioned(
-                                      top: 20 + (controller.value * 50),
-                                      left: 0,
-                                      right: 0,
-                                      child: Center(
-                                        child: SpinKitWaveSpinner(
-                                          color: AppTheme.colors.primary,
-                                          size: 40.0,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              );
-                            },
-                          );
-                        },
-                        child: ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
+  Widget _buildToggleShell({EdgeInsetsGeometry? margin}) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      margin: margin,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(_isHeroCollapsed ? 0.94 : 0.84),
+        borderRadius: BorderRadius.circular(_toggleRadius),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.92),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(_isHeroCollapsed ? 0.09 : 0.05),
+            blurRadius: _isHeroCollapsed ? 20 : 12,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: _buildRoleToggle(),
+    );
+  }
+
+  Widget _buildInlineRoleToggle() {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: _isHeroCollapsed
+          ? const SizedBox.shrink()
+          : _buildToggleShell(
+              margin: const EdgeInsets.fromLTRB(20, 2, 20, 12),
+            ),
+    );
+  }
+
+  Widget _buildPinnedRoleToggle() {
+    return _buildToggleShell(
+      margin: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+    );
+  }
+
+  Widget _buildRoleToggle() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isHostView = !_isHostView;
+          _tabController.index = _isHostView ? 1 : 0;
+        });
+      },
+      child: Container(
+        height: 62,
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(_toggleRadius),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.75),
+          ),
+        ),
+        child: Stack(
+          children: [
+            AnimatedAlign(
+              alignment:
+                  _isHostView ? Alignment.centerRight : Alignment.centerLeft,
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              child: Container(
+                width: (MediaQuery.of(context).size.width - 92) / 2,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.colors.primary,
+                      AppTheme.colors.secondary,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(_toggleRadius),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.colors.primary.withOpacity(0.28),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildRoleToggleLabel(
+                    label: 'Joining',
+                    icon: Icons.groups_rounded,
+                    selected: !_isHostView,
+                  ),
+                ),
+                Expanded(
+                  child: _buildRoleToggleLabel(
+                    label: 'Hosting',
+                    icon: Icons.campaign_rounded,
+                    selected: _isHostView,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScrollableContent({required List<Widget> slivers}) {
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        SliverToBoxAdapter(
+          child: _buildHeroHeader(),
+        ),
+        SliverToBoxAdapter(
+          child: _buildInlineRoleToggle(),
+        ),
+        ...slivers,
+      ],
+    );
+  }
+
+  Widget _buildRoleToggleLabel({
+    required String label,
+    required IconData icon,
+    required bool selected,
+  }) {
+    return Center(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: selected ? Colors.white : AppTheme.colors.textSecondary,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: selected ? Colors.white : AppTheme.colors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStateCard({
+    required IconData icon,
+    required String eyebrow,
+    required String title,
+    required String message,
+    String? buttonLabel,
+    VoidCallback? onPressed,
+    Widget? footer,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.92),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.8),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.colors.primary.withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 14),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 82,
+                height: 82,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.colors.primary.withOpacity(0.18),
+                      AppTheme.colors.secondary.withOpacity(0.12),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Icon(
+                  icon,
+                  size: 38,
+                  color: AppTheme.colors.primary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                eyebrow,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  color: AppTheme.colors.primary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 32,
+                  height: 0.98,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.colors.text,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.45,
+                  color: AppTheme.colors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (buttonLabel != null && onPressed != null) ...[
+                const SizedBox(height: 22),
+                ElevatedButton.icon(
+                  onPressed: onPressed,
+                  icon: const Icon(Icons.explore_outlined),
+                  label: Text(buttonLabel),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.colors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 22,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+              if (footer != null) ...[
+                const SizedBox(height: 20),
+                footer,
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return _buildStateCard(
+      icon: Icons.nightlife_rounded,
+      eyebrow: 'SYNCING',
+      title: 'Loading\nyour nights',
+      message: 'Pulling together your hosted and joined parties now.',
+      footer: SpinKitWaveSpinner(
+        color: AppTheme.colors.primary,
+        size: 42,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.colors.background,
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          Positioned(
+            top: -90,
+            left: -40,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.colors.primary.withOpacity(0.12),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 110,
+            right: -50,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.colors.secondary.withOpacity(0.10),
+              ),
+            ),
+          ),
+          Consumer<AuthService>(
+            builder: (context, auth, child) {
+              if (auth.currentUser == null) {
+                return CustomRefreshIndicator(
+                  onRefresh: _refreshData,
+                  builder: (context, child, controller) {
+                    return AnimatedBuilder(
+                      animation: controller,
+                      builder: (context, _) {
+                        return Stack(
                           children: [
-                            SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.6,
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SpinKitWaveSpinner(
-                                      color: AppTheme.colors.primary,
-                                      size: 50.0,
-                                    ),
-                                    const SizedBox(height: 24),
-                                    const Text(
-                                      'Loading your parties...',
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
+                            Transform.translate(
+                              offset: Offset(0, controller.value * 100),
+                              child: child,
+                            ),
+                            if (controller.isLoading || controller.value > 0)
+                              Positioned(
+                                top: 20 + (controller.value * 50),
+                                left: 0,
+                                right: 0,
+                                child: Center(
+                                  child: SpinKitWaveSpinner(
+                                    color: AppTheme.colors.primary,
+                                    size: 40.0,
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
-                        ),
-                      );
-                    }
-
-                    if (_parties.isEmpty) {
-                      print('❌ NO PARTIES LOADED - Showing empty state');
-                      print('   Current user: ${auth.currentUser?.id}');
-                      print(
-                          '   Current user name: ${auth.currentUser?.displayName}');
-                      return CustomRefreshIndicator(
-                        onRefresh: _refreshData,
-                        builder: (context, child, controller) {
-                          return AnimatedBuilder(
-                            animation: controller,
-                            builder: (context, _) {
-                              return Stack(
-                                children: [
-                                  Transform.translate(
-                                    offset: Offset(0, controller.value * 100),
-                                    child: child,
-                                  ),
-                                  if (controller.isLoading ||
-                                      controller.value > 0)
-                                    Positioned(
-                                      top: 20 + (controller.value * 50),
-                                      left: 0,
-                                      right: 0,
-                                      child: Center(
-                                        child: SpinKitWaveSpinner(
-                                          color: AppTheme.colors.primary,
-                                          size: 40.0,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              );
-                            },
-                          );
-                        },
-                        child: ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.6,
-                              child: _buildEmptyState(),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    print('\n📊 RENDERING WITH CURRENT STATE:');
-                    print('   Total parties loaded: ${_parties.length}');
-                    print('   IsHostView: $_isHostView');
-                    print('   SelectedFilter: $_selectedFilter');
-                    print('   Current user: ${auth.currentUser?.id}');
-                    final filteredParties = _filterParties(_parties);
-                    print(
-                        '   ✅ After filtering: ${filteredParties.length} parties remain\n');
-
-                    return CustomRefreshIndicator(
-                      onRefresh: _refreshData,
-                      builder: (context, child, controller) {
-                        return AnimatedBuilder(
-                          animation: controller,
-                          builder: (context, _) {
-                            return Stack(
-                              children: [
-                                Transform.translate(
-                                  offset: Offset(0, controller.value * 100),
-                                  child: child,
-                                ),
-                                if (controller.isLoading ||
-                                    controller.value > 0)
-                                  Positioned(
-                                    top: 20 + (controller.value * 50),
-                                    left: 0,
-                                    right: 0,
-                                    child: Center(
-                                      child: SpinKitWaveSpinner(
-                                        color: AppTheme.colors.primary,
-                                        size: 40.0,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          },
                         );
                       },
-                      child: CustomScrollView(
-                        slivers: [
-                          // Filter Pills
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                              child: _buildSummaryAndFilters(
-                                _parties,
-                                filteredParties,
-                              ),
+                    );
+                  },
+                  child: _buildScrollableContent(
+                    slivers: [
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          child: _buildEmptyState(),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              if (_isLoading) {
+                return CustomRefreshIndicator(
+                  onRefresh: _refreshData,
+                  builder: (context, child, controller) {
+                    return AnimatedBuilder(
+                      animation: controller,
+                      builder: (context, _) {
+                        return Stack(
+                          children: [
+                            Transform.translate(
+                              offset: Offset(0, controller.value * 100),
+                              child: child,
                             ),
-                          ),
-                          // Parties List or Empty State
-                          if (filteredParties.isEmpty)
-                            SliverFillRemaining(
-                              child: _buildNoPartiesForFilter(),
-                            )
-                          else
-                            SliverPadding(
-                              padding: EdgeInsets.fromLTRB(
-                                16,
-                                0,
-                                16,
-                                MediaQuery.of(context).padding.bottom + 100,
+                            if (controller.isLoading || controller.value > 0)
+                              Positioned(
+                                top: 20 + (controller.value * 50),
+                                left: 0,
+                                right: 0,
+                                child: Center(
+                                  child: SpinKitWaveSpinner(
+                                    color: AppTheme.colors.primary,
+                                    size: 40.0,
+                                  ),
+                                ),
                               ),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) {
-                                    final party = filteredParties[index];
-                                    return Padding(
-                                      padding: EdgeInsets.only(
-                                        bottom:
-                                            index < filteredParties.length - 1
-                                                ? 16
-                                                : 0,
-                                      ),
-                                      child: _MyPartyCompactCard(
-                                        party: party,
-                                        onPartyAction: (partyId, isHost,
-                                                isCancelled) =>
-                                            _handlePartyAction(
-                                                partyId, isHost, isCancelled),
-                                        showFeedbackCard:
-                                            _selectedFilter == 'past',
-                                        onFeedbackTap: _showFeedbackBottomSheet,
-                                      ),
-                                    );
-                                  },
-                                  childCount: filteredParties.length,
+                          ],
+                        );
+                      },
+                    );
+                  },
+                  child: _buildScrollableContent(
+                    slivers: [
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          child: _buildLoadingState(),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              if (_parties.isEmpty) {
+                print('❌ NO PARTIES LOADED - Showing empty state');
+                print('   Current user: ${auth.currentUser?.id}');
+                print('   Current user name: ${auth.currentUser?.displayName}');
+                return CustomRefreshIndicator(
+                  onRefresh: _refreshData,
+                  builder: (context, child, controller) {
+                    return AnimatedBuilder(
+                      animation: controller,
+                      builder: (context, _) {
+                        return Stack(
+                          children: [
+                            Transform.translate(
+                              offset: Offset(0, controller.value * 100),
+                              child: child,
+                            ),
+                            if (controller.isLoading || controller.value > 0)
+                              Positioned(
+                                top: 20 + (controller.value * 50),
+                                left: 0,
+                                right: 0,
+                                child: Center(
+                                  child: SpinKitWaveSpinner(
+                                    color: AppTheme.colors.primary,
+                                    size: 40.0,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                  child: _buildScrollableContent(
+                    slivers: [
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          child: _buildEmptyState(),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              print('\n📊 RENDERING WITH CURRENT STATE:');
+              print('   Total parties loaded: ${_parties.length}');
+              print('   IsHostView: $_isHostView');
+              print('   SelectedFilter: $_selectedFilter');
+              print('   Current user: ${auth.currentUser?.id}');
+              final filteredParties = _filterParties(_parties);
+              print(
+                  '   ✅ After filtering: ${filteredParties.length} parties remain\n');
+
+              return CustomRefreshIndicator(
+                onRefresh: _refreshData,
+                builder: (context, child, controller) {
+                  return AnimatedBuilder(
+                    animation: controller,
+                    builder: (context, _) {
+                      return Stack(
+                        children: [
+                          Transform.translate(
+                            offset: Offset(0, controller.value * 100),
+                            child: child,
+                          ),
+                          if (controller.isLoading || controller.value > 0)
+                            Positioned(
+                              top: 20 + (controller.value * 50),
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: SpinKitWaveSpinner(
+                                  color: AppTheme.colors.primary,
+                                  size: 40.0,
                                 ),
                               ),
                             ),
                         ],
+                      );
+                    },
+                  );
+                },
+                child: _buildScrollableContent(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+                        child: _buildSummaryAndFilters(
+                          _parties,
+                          filteredParties,
+                        ),
                       ),
-                    );
-                  },
+                    ),
+                    if (filteredParties.isEmpty)
+                      SliverFillRemaining(
+                        child: _buildNoPartiesForFilter(),
+                      )
+                    else
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          0,
+                          20,
+                          MediaQuery.of(context).padding.bottom + 100,
+                        ),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final party = filteredParties[index];
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: index < filteredParties.length - 1
+                                      ? 16
+                                      : 0,
+                                ),
+                                child: _MyPartyCompactCard(
+                                  party: party,
+                                  onPartyAction:
+                                      (partyId, isHost, isCancelled) =>
+                                          _handlePartyAction(
+                                              partyId, isHost, isCancelled),
+                                  showFeedbackCard: _selectedFilter == 'past',
+                                  onFeedbackTap: _showFeedbackBottomSheet,
+                                ),
+                              );
+                            },
+                            childCount: filteredParties.length,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
+          if (_isHeroCollapsed)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: _buildPinnedRoleToggle(),
+              ),
+            ),
         ],
       ),
     );
@@ -658,30 +924,163 @@ class _MyPartiesScreenState extends State<MyPartiesScreen>
                 p.hostUserId != currentUser.id)
             .toList();
 
+    final now = DateTime.now();
+    final upcomingCount =
+        relevantParties.where((party) => party.dateTime.isAfter(now)).length;
+    final pastCount =
+        relevantParties.where((party) => party.dateTime.isBefore(now)).length;
+    final ongoingCount = relevantParties.where((party) {
+      final startTime = now.subtract(const Duration(hours: 4));
+      final endTime = now.add(const Duration(hours: 4));
+      return party.dateTime.isAfter(startTime) &&
+          party.dateTime.isBefore(endTime);
+    }).length;
+
     return Container(
-      margin: const EdgeInsets.only(top: 8, bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.only(top: 4, bottom: 6),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Filter Pills
           Container(
-            padding: const EdgeInsets.all(4),
+            width: double.infinity,
+            padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildFilterPill('upcoming', 'Upcoming'),
-                ),
-                Expanded(
-                  child: _buildFilterPill('ongoing', 'Ongoing'),
-                ),
-                Expanded(
-                  child: _buildFilterPill('past', 'Past'),
+              color: Colors.white.withOpacity(0.88),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.9),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10),
                 ),
               ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isHostView ? 'Host dashboard' : 'Party dashboard',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.colors.primary,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${filteredParties.length} ${_selectedFilter == 'ongoing' ? 'live now' : _selectedFilter} ${filteredParties.length == 1 ? 'party' : 'parties'}',
+                  style: TextStyle(
+                    fontSize: 28,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                    color: AppTheme.colors.text,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _isHostView
+                      ? 'See what is coming up, what is active, and what has already wrapped.'
+                      : 'Flip between upcoming nights, current plans, and the parties you have already been to.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.45,
+                    color: AppTheme.colors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryMetric(
+                        'Upcoming',
+                        '$upcomingCount',
+                        Icons.schedule_rounded,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildSummaryMetric(
+                        'Live',
+                        '$ongoingCount',
+                        Icons.bolt_rounded,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildSummaryMetric(
+                        'Past',
+                        '$pastCount',
+                        Icons.history_rounded,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.colors.background,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildFilterPill('upcoming', 'Upcoming'),
+                      ),
+                      Expanded(
+                        child: _buildFilterPill('ongoing', 'Ongoing'),
+                      ),
+                      Expanded(
+                        child: _buildFilterPill('past', 'Past'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryMetric(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppTheme.colors.background.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: AppTheme.colors.primary,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: AppTheme.colors.text,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.colors.textSecondary,
             ),
           ),
         ],
@@ -699,16 +1098,24 @@ class _MyPartiesScreenState extends State<MyPartiesScreen>
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [
+                    AppTheme.colors.primary,
+                    AppTheme.colors.secondary,
+                  ],
+                )
+              : null,
+          color: isSelected ? null : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: AppTheme.colors.primary.withOpacity(0.22),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
                   ),
                 ]
               : [],
@@ -718,38 +1125,12 @@ class _MyPartiesScreenState extends State<MyPartiesScreen>
             label,
             style: TextStyle(
               fontSize: 13,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? Colors.black87 : Colors.grey.shade600,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected ? Colors.white : AppTheme.colors.textSecondary,
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildPartiesList(List<Party> parties) {
-    return ListView.separated(
-      controller: _scrollController,
-      padding: EdgeInsets.fromLTRB(
-        16,
-        0,
-        16,
-        MediaQuery.of(context).padding.bottom +
-            100, // Add space for bottom nav bar
-      ),
-      itemCount: parties.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (context, index) {
-        final party = parties[index];
-        return _MyPartyCompactCard(
-          party: party,
-          onPartyAction: (partyId, isHost, isCancelled) =>
-              _handlePartyAction(partyId, isHost, isCancelled),
-          showFeedbackCard:
-              _selectedFilter == 'past', // Show feedback card on past tab
-          onFeedbackTap: _showFeedbackBottomSheet,
-        );
-      },
     );
   }
 
@@ -1540,98 +1921,26 @@ class _MyPartiesScreenState extends State<MyPartiesScreen>
   // Removed legacy full-width card after redesign
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppTheme.colors.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.celebration,
-                size: 64,
-                color: AppTheme.colors.primary.withOpacity(0.6),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'No Parties Yet',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.colors.primary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Start exploring clubs and join parties to see them here!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                context.push('/view-all-parties');
-              },
-              icon: const Icon(Icons.explore),
-              label: const Text('Explore'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.colors.primary,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return _buildStateCard(
+      icon: Icons.celebration_rounded,
+      eyebrow: 'NOTHING HERE YET',
+      title: 'No parties\nso far',
+      message:
+          'Start exploring clubs and jump into a night out to build your list.',
+      buttonLabel: 'Explore parties',
+      onPressed: () {
+        context.push('/view-all-parties');
+      },
     );
   }
 
   Widget _buildNoPartiesForFilter() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.filter_list,
-              size: 64,
-              color: Colors.grey.shade400,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No ${_selectedFilter == 'all' ? '' : _selectedFilter} parties',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Try changing the filter or join some parties!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return _buildStateCard(
+      icon: Icons.tune_rounded,
+      eyebrow: 'FILTERED VIEW',
+      title:
+          'No ${_selectedFilter == 'ongoing' ? 'live' : _selectedFilter}\nparties',
+      message: 'Try another filter or come back later when your plans shift.',
     );
   }
 
@@ -1958,7 +2267,7 @@ class _MyPartyCompactCardState extends State<_MyPartyCompactCard> {
         },
         child: Container(
           width: double.infinity,
-          height: isHost ? 220 : 200,
+          height: isHost ? 308 : 248,
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
             color: Colors.white,
@@ -1981,223 +2290,289 @@ class _MyPartyCompactCardState extends State<_MyPartyCompactCard> {
 
   // Redesigned Host Card
   Widget _buildHostCard(BuildContext context, bool isHost, bool isAttending) {
+    final bool cancelled = _isPartyCancelled(widget.party);
+    final bool finished = _isPartyFinished(widget.party);
+    final DateTime endTime =
+        widget.party.dateTime.add(const Duration(hours: 4));
+
+    final String statusText = cancelled
+        ? 'Cancelled'
+        : finished
+            ? 'Hosted'
+            : 'Hosting';
+
+    final Color statusColor = cancelled
+        ? const Color(0xFFC83C3C)
+        : finished
+            ? const Color(0xFF2E7D32)
+            : const Color(0xFF2F7D45);
+
+    final Color statusBg = cancelled
+        ? const Color(0xFFFDEBEC)
+        : finished
+            ? const Color(0xFFE8F5E9)
+            : const Color(0xFFEAF4EC);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-      child: Stack(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Image section - rounded square on the left
-              Expanded(
-                flex: 45,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+      padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F7FC),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE5EAF3)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: statusBg,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(22),
+                  topRight: Radius.circular(22),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    cancelled
+                        ? Icons.cancel_rounded
+                        : Icons.check_circle_rounded,
+                    size: 18,
+                    color: statusColor,
                   ),
-                  child: Stack(
-                    children: [
-                      // Image
-                      Positioned.fill(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                  const SizedBox(width: 8),
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
                           child: ColorFiltered(
-                            colorFilter: _isPartyCancelled(widget.party)
+                            colorFilter: cancelled
                                 ? const ColorFilter.mode(
                                     Colors.red, BlendMode.saturation)
-                                : _isPartyFinished(widget.party)
+                                : finished
                                     ? const ColorFilter.mode(
                                         Colors.grey, BlendMode.saturation)
                                     : const ColorFilter.mode(
-                                        Colors.transparent, BlendMode.multiply),
+                                        Colors.transparent,
+                                        BlendMode.multiply,
+                                      ),
                             child: Image.network(
                               widget.party.imageUrl ??
                                   _fallbackImage(widget.party.clubId),
+                              width: 74,
+                              height: 74,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return Container(
+                                  width: 74,
+                                  height: 74,
                                   color: Colors.grey.shade200,
-                                  child: const Center(
-                                    child: Icon(Icons.image_not_supported,
-                                        size: 32, color: Colors.grey),
+                                  child: const Icon(
+                                    Icons.image_not_supported,
+                                    size: 22,
+                                    color: Colors.grey,
                                   ),
                                 );
                               },
                             ),
                           ),
                         ),
-                      ),
-                      // Date card overlaid on image
-                      Positioned(
-                        top: 6,
-                        left: 6,
-                        child: _buildDateCard(widget.party.dateTime),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Details section on the right
-              Expanded(
-                flex: 55,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Top section - Title and details
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Party name in bold
-                          Text(
-                            widget.party.title.isNotEmpty
-                                ? widget.party.title
-                                : 'Untitled Party',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          // Location
-                          Row(
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.location_on,
-                                  size: 12, color: Colors.grey.shade600),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  _clubName ?? 'Loading location...',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 11,
+                              Text(
+                                widget.party.title.isNotEmpty
+                                    ? widget.party.title
+                                    : 'Untitled Party',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF171A22),
+                                  height: 1.15,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${DateFormat('d MMM').format(widget.party.dateTime)} (${DateFormat('HH:mm').format(widget.party.dateTime)})  ->  ${DateFormat('d MMM').format(endTime)} (${DateFormat('HH:mm').format(endTime)})',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.location_on_rounded,
+                                    size: 15,
                                     color: Colors.grey.shade600,
                                   ),
-                                ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      _clubName ?? 'Loading location...',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          // Progress bar with wave effect
-                          _buildWaveProgressBar(
-                            widget.party.attendeeUserIds.length,
-                            widget.party.capacity,
-                          ),
-                          const SizedBox(height: 8),
-                          // Accept requests toggle
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade200),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.how_to_reg,
-                                  size: 14,
-                                  color: Colors.grey.shade600,
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    'Accepting Requests',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.grey.shade700,
-                                    ),
-                                  ),
-                                ),
-                                Switch(
-                                  value: _isAcceptingRequests,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _isAcceptingRequests = value;
-                                    });
-                                    _toggleAcceptingRequests(value);
-                                  },
-                                  activeColor: AppTheme.colors.primary,
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    _buildWaveProgressBar(
+                      widget.party.attendeeUserIds.length,
+                      widget.party.capacity,
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
                       ),
-                      // Bottom section - Quick actions
-                      Row(
+                      child: Row(
                         children: [
-                          Expanded(
-                            child: _buildHostActionButton(
-                              icon: Icons.chat_bubble_outline,
-                              label: 'Chat',
-                              color: Colors.blue,
-                              onTap: () => context
-                                  .push('/party-details?id=${widget.party.id}'),
-                            ),
+                          Icon(
+                            Icons.how_to_reg,
+                            size: 14,
+                            color: Colors.grey.shade600,
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                                width: 1,
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Accepting Requests',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade700,
                               ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.key,
-                                  size: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  widget.party.inviteCode.isNotEmpty
-                                      ? widget.party.inviteCode
-                                      : 'N/A',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.grey.shade700,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                              ],
+                          ),
+                          Transform.scale(
+                            scale: 0.82,
+                            child: Switch(
+                              value: _isAcceptingRequests,
+                              onChanged: (value) {
+                                setState(() {
+                                  _isAcceptingRequests = value;
+                                });
+                                _toggleAcceptingRequests(value);
+                              },
+                              activeColor: AppTheme.colors.primary,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEFF2FB),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(22),
+                  bottomRight: Radius.circular(22),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildHostActionButton(
+                      icon: Icons.chat_bubble_outline,
+                      label: 'Chat',
+                      color: Colors.blue,
+                      onTap: () =>
+                          context.push('/party-details?id=${widget.party.id}'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.key,
+                          size: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.party.inviteCode.isNotEmpty
+                              ? widget.party.inviteCode
+                              : 'N/A',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.grey.shade700,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2408,273 +2783,253 @@ class _MyPartyCompactCardState extends State<_MyPartyCompactCard> {
 
   // Original Joiner Card
   Widget _buildJoinerCard(BuildContext context, bool isHost, bool isAttending) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Image (top)
-        Expanded(
-          flex: 3,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                  child: ColorFiltered(
-                    colorFilter: _isPartyCancelled(widget.party)
-                        ? const ColorFilter.mode(
-                            Colors.red, BlendMode.saturation)
-                        : _isPartyFinished(widget.party)
-                            ? const ColorFilter.mode(
-                                Colors.grey, BlendMode.saturation)
-                            : const ColorFilter.mode(
-                                Colors.transparent, BlendMode.multiply),
-                    child: Image.network(
-                      widget.party.imageUrl ??
-                          _fallbackImage(widget.party.clubId),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey.shade200,
-                          child: const Center(
-                            child: Icon(Icons.image_not_supported,
-                                size: 24, color: Colors.grey),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-              // Status overlay
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _isPartyCancelled(widget.party)
-                        ? Colors.red
-                        : (_isPartyFinished(widget.party) &&
-                                _hasArrived &&
-                                isAttending)
-                            ? Colors.green
-                            : (isAttending ? Colors.blue : Colors.grey),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _isPartyCancelled(widget.party)
-                        ? 'Cancelled'
-                        : (_isPartyFinished(widget.party) &&
-                                _hasArrived &&
-                                isAttending)
-                            ? 'Attended'
-                            : (isAttending ? 'Going' : 'Guest'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+    final bool cancelled = _isPartyCancelled(widget.party);
+    final bool attended = _isPartyFinished(widget.party) && _hasArrived;
+    final bool confirmed = isAttending && !cancelled;
+
+    final String statusText = cancelled
+        ? 'Cancelled'
+        : attended
+            ? 'Attended'
+            : confirmed
+                ? 'Confirmed'
+                : 'Guest';
+
+    final Color statusColor = cancelled
+        ? const Color(0xFFC83C3C)
+        : attended
+            ? const Color(0xFF2E7D32)
+            : const Color(0xFF2F7D45);
+
+    final Color statusBg = cancelled
+        ? const Color(0xFFFDEBEC)
+        : attended
+            ? const Color(0xFFE8F5E9)
+            : const Color(0xFFEAF4EC);
+
+    final DateTime endTime =
+        widget.party.dateTime.add(const Duration(hours: 4));
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F7FC),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE5EAF3)),
         ),
-        // Details (bottom)
-        Expanded(
-          flex: 2,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Left half - Party details
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Title
-                      Text(
-                        widget.party.title.isNotEmpty
-                            ? widget.party.title
-                            : 'Untitled Party',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: statusBg,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(22),
+                  topRight: Radius.circular(22),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    cancelled
+                        ? Icons.cancel_rounded
+                        : Icons.check_circle_rounded,
+                    size: 18,
+                    color: statusColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: ColorFiltered(
+                        colorFilter: cancelled
+                            ? const ColorFilter.mode(
+                                Colors.red, BlendMode.saturation)
+                            : attended
+                                ? const ColorFilter.mode(
+                                    Colors.grey, BlendMode.saturation)
+                                : const ColorFilter.mode(
+                                    Colors.transparent,
+                                    BlendMode.multiply,
+                                  ),
+                        child: Image.network(
+                          widget.party.imageUrl ??
+                              _fallbackImage(widget.party.clubId),
+                          width: 76,
+                          height: 76,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 76,
+                              height: 76,
+                              color: Colors.grey.shade200,
+                              child: const Icon(
+                                Icons.image_not_supported,
+                                size: 22,
+                                color: Colors.grey,
+                              ),
+                            );
+                          },
                         ),
                       ),
-                      // Venue
-                      Text(
-                        _clubName ?? 'Loading location...',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      // Date
-                      Row(
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.access_time,
-                              size: 10, color: Colors.black54),
-                          const SizedBox(width: 3),
-                          Expanded(
-                            child: Text(
-                              DateFormat('MMM d, h:mm a')
-                                  .format(widget.party.dateTime),
-                              style: const TextStyle(
-                                  fontSize: 10, color: Colors.black54),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          Text(
+                            widget.party.title.isNotEmpty
+                                ? widget.party.title
+                                : 'Untitled Party',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF171A22),
+                              height: 1.15,
                             ),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Right half - Feedback button or attendee avatars
-              if (widget.showFeedbackCard && widget.onFeedbackTap != null)
-                Expanded(
-                  flex: 1,
-                  child: GestureDetector(
-                    onTap: widget.onFeedbackTap,
-                    child: Container(
-                      margin: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.colors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppTheme.colors.primary.withOpacity(0.3),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                          const SizedBox(height: 6),
+                          Text(
+                            '${DateFormat('d MMM').format(widget.party.dateTime)} (${DateFormat('HH:mm').format(widget.party.dateTime)})  ->  ${DateFormat('d MMM').format(endTime)} (${DateFormat('HH:mm').format(endTime)})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          Row(
                             children: [
-                              Expanded(
-                                child: Text(
-                                  'How\'s your party? Rate your new friends',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.colors.primary,
-                                    height: 1.3,
-                                  ),
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                              Icon(
+                                Icons.location_on_rounded,
+                                size: 15,
+                                color: Colors.grey.shade600,
                               ),
                               const SizedBox(width: 4),
-                              Icon(
-                                Icons.arrow_forward_ios,
-                                size: 14,
-                                color: AppTheme.colors.primary,
+                              Expanded(
+                                child: Text(
+                                  _clubName ?? 'Loading location...',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade700,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                        ),
+                        ],
                       ),
                     ),
-                  ),
-                )
-              else
-                Expanded(
-                  flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (_attendeeNames.isNotEmpty)
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ...List.generate(
-                                    _attendeeNames.length > 3
-                                        ? 3
-                                        : _attendeeNames.length,
-                                    (index) => Padding(
-                                      padding: EdgeInsets.only(
-                                          right: index < 2 ? 2 : 0),
-                                      child: CircleAvatar(
-                                        radius: 8,
-                                        backgroundColor: Colors.grey.shade300,
-                                        child: Text(
-                                          _attendeeNames[index].isNotEmpty
-                                              ? _attendeeNames[index][0]
-                                                  .toUpperCase()
-                                              : '?',
-                                          style: const TextStyle(
-                                              fontSize: 8,
-                                              color: Colors.black87),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  if (_attendeeNames.length > 3)
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 2),
-                                      child: CircleAvatar(
-                                        radius: 8,
-                                        backgroundColor: Colors.grey.shade400,
-                                        child: Text(
-                                          '+${_attendeeNames.length - 3}',
-                                          style: const TextStyle(
-                                              fontSize: 8, color: Colors.white),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            if (_attendeeNames.isNotEmpty)
-                              const SizedBox(width: 4),
-                            Icon(
-                              Icons.people,
-                              size: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${widget.party.attendeeUserIds.length}/${widget.party.capacity}',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade700),
-                            ),
-                          ],
-                        ),
-                      ],
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(14, 8, 10, 10),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEFF2FB),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(22),
+                  bottomRight: Radius.circular(22),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '1 Booking',
+                    style: TextStyle(
+                      color: AppTheme.colors.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
                     ),
                   ),
-                ),
-            ], // end of Row children
-          ), // end of Row
-        ), // end of Expanded (flex: 2)
-      ], // end of Column children
-    ); // end of Column
+                  const SizedBox(width: 8),
+                  Text(
+                    '•',
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.people_alt_outlined,
+                      size: 15, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${widget.party.attendeeUserIds.length}',
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (widget.showFeedbackCard && widget.onFeedbackTap != null)
+                    GestureDetector(
+                      onTap: widget.onFeedbackTap,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.colors.primary.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          'Rate',
+                          style: TextStyle(
+                            color: AppTheme.colors.primary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: AppTheme.colors.primary,
+                      size: 24,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<bool> _showConfirmationDialog(

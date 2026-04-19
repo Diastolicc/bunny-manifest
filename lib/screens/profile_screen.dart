@@ -28,7 +28,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _hostedPartiesCount = 0;
   int _joinedPartiesCount = 0;
   int _bunnyPoints = 0;
-
+  static const double _surfaceRadius = 36.0;
+  static const Color _pageBackground = Color(0xFFF4F6FB);
 
   @override
   void initState() {
@@ -47,9 +48,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (currentUserId != null) {
         final allParties = await partyService.getAllParties();
-        final hostedParties = allParties.where((party) => party.hostUserId == currentUserId).toList();
+        final hostedParties = allParties
+            .where((party) => party.hostUserId == currentUserId)
+            .toList();
         final hostedCount = hostedParties.length;
-        final joinedParties = allParties.where((party) => party.attendeeUserIds.contains(currentUserId) && party.hostUserId != currentUserId).toList();
+        final joinedParties = allParties
+            .where((party) =>
+                party.attendeeUserIds.contains(currentUserId) &&
+                party.hostUserId != currentUserId)
+            .toList();
         final joinedCount = joinedParties.length;
 
         if (mounted) {
@@ -81,12 +88,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (currentUser == null) return;
 
       final firestore = FirebaseFirestore.instance;
-      final userDoc = await firestore.collection('users').doc(currentUser.id).get();
+      final userDoc =
+          await firestore.collection('users').doc(currentUser.id).get();
 
       if (userDoc.exists) {
         final data = userDoc.data() ?? {};
         int points = (data['bunnyPoints'] ?? 0) as int;
-        final lastRefresh = (data['bunnyPointsLastRefresh'] as Timestamp?)?.toDate();
+        final lastRefresh =
+            (data['bunnyPointsLastRefresh'] as Timestamp?)?.toDate();
 
         if (lastRefresh != null) {
           final now = DateTime.now();
@@ -131,48 +140,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Social Media Style Helper Methods
 
   Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE6EBF4), width: 1),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1B1F2A),
+              height: 1.0,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildMenuItem(IconData icon, String title, VoidCallback onTap,
       {bool isLast = false}) {
     return InkWell(
+      borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(
           border: isLast
               ? null
               : Border(
-                  bottom: BorderSide(color: Colors.grey.shade200, width: 0.5),
+                  bottom: BorderSide(color: const Color(0xFFE8EDF5), width: 1),
                 ),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: Colors.grey.shade600,
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5FC),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: Colors.grey.shade700,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -180,15 +208,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Colors.black87,
-                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1B1F2A),
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: Colors.grey.shade400,
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F7FD),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.arrow_forward_ios,
+                size: 13,
+                color: Colors.grey.shade500,
+              ),
             ),
           ],
         ),
@@ -592,7 +628,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _createTestPartyData() async {
+  Future<void> _createTestOngoingParty() async {
     try {
       final authService = context.read<AuthService>();
       final partyService = context.read<PartyService>();
@@ -619,79 +655,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
       );
 
-      // Create test parties with different statuses
       final now = DateTime.now();
-      final testParties = [
-        // Ongoing party (happening now)
-        Party(
-          id: 'test_ongoing_${DateTime.now().millisecondsSinceEpoch}',
-          title: 'Test Ongoing Party',
-          description: 'This is a test ongoing party for development purposes',
-          hostUserId: currentUser.id,
-          clubId: 'test_club_1',
-          dateTime:
-              now.subtract(const Duration(hours: 1)), // Started 1 hour ago
-          capacity: 50,
-          budgetPerHead: 500,
-          entranceFeeAmount: 0,
-          hasEntranceFee: false,
-          imageUrl: '',
-          attendeeUserIds: ['user1', 'user2', 'user3'],
-        ),
-        // Upcoming party (tomorrow)
-        Party(
-          id: 'test_upcoming_${DateTime.now().millisecondsSinceEpoch}',
-          title: 'Test Upcoming Party',
-          description: 'This is a test upcoming party for development purposes',
-          hostUserId: currentUser.id,
-          clubId: 'test_club_2',
-          dateTime: now.add(const Duration(days: 1)), // Tomorrow
-          capacity: 30,
-          budgetPerHead: 300,
-          entranceFeeAmount: 150,
-          hasEntranceFee: true,
-          imageUrl: '',
-          attendeeUserIds: ['user4', 'user5'],
-        ),
-        // Past party (yesterday)
-        Party(
-          id: 'test_past_${DateTime.now().millisecondsSinceEpoch}',
-          title: 'Test Past Party',
-          description: 'This is a test past party for development purposes',
-          hostUserId: currentUser.id,
-          clubId: 'test_club_3',
-          dateTime: now.subtract(const Duration(days: 1)), // Yesterday
-          capacity: 25,
-          budgetPerHead: 400,
-          entranceFeeAmount: 200,
-          hasEntranceFee: true,
-          imageUrl: '',
-          attendeeUserIds: ['user6', 'user7', 'user8', 'user9'],
-        ),
-      ];
+      
+      // Create ongoing party (happening now - started 1 hour ago)
+      final testParty = Party(
+        id: 'test_ongoing_${DateTime.now().millisecondsSinceEpoch}',
+        title: 'Test Ongoing Party',
+        description: 'This is a test ongoing party for development purposes',
+        hostUserId: currentUser.id,
+        clubId: 'test_club_ongoing',
+        dateTime: now.subtract(const Duration(hours: 1)), // Started 1 hour ago
+        capacity: 50,
+        budgetPerHead: 500,
+        entranceFeeAmount: 0,
+        hasEntranceFee: false,
+        imageUrl: '',
+        attendeeUserIds: ['user1', 'user2', 'user3'],
+      );
 
-      // Create the test parties
-      for (final party in testParties) {
-        await partyService.create(
-          clubId: party.clubId,
-          hostUserId: party.hostUserId,
-          title: party.title,
-          dateTime: party.dateTime,
-          description: party.description,
-          capacity: party.capacity,
-          budgetPerHead: party.budgetPerHead,
-          entranceFeeAmount: party.entranceFeeAmount,
-          hasEntranceFee: party.hasEntranceFee,
-          imageUrl: party.imageUrl,
-        );
-      }
+      // Create the test party
+      await partyService.create(
+        clubId: testParty.clubId,
+        hostUserId: testParty.hostUserId,
+        title: testParty.title,
+        dateTime: testParty.dateTime,
+        description: testParty.description,
+        capacity: testParty.capacity,
+        budgetPerHead: testParty.budgetPerHead,
+        entranceFeeAmount: testParty.entranceFeeAmount,
+        hasEntranceFee: testParty.hasEntranceFee,
+        imageUrl: testParty.imageUrl,
+      );
 
       // Hide loading indicator
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Test party data created successfully!'),
+            content: Text('Test ongoing party created for today!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -700,17 +701,108 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _loadPartyStats();
       }
     } catch (e) {
-      print('Error creating test party data: $e');
+      print('Error creating test ongoing party: $e');
       if (mounted) {
-        Navigator.of(context).pop(); // Hide loading indicator
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error creating test data: $e'),
+            content: Text('Error creating test party: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
+  }
+
+  Future<void> _createTestFutureParty() async {
+    try {
+      final authService = context.read<AuthService>();
+      final partyService = context.read<PartyService>();
+      final currentUser = authService.currentUser;
+
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to create test data'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        },
+      );
+
+      final now = DateTime.now();
+      
+      // Create future party (tomorrow)
+      final testParty = Party(
+        id: 'test_future_${DateTime.now().millisecondsSinceEpoch}',
+        title: 'Test Future Party',
+        description: 'This is a test future party for development purposes',
+        hostUserId: currentUser.id,
+        clubId: 'test_club_future',
+        dateTime: now.add(const Duration(days: 1)), // Tomorrow
+        capacity: 30,
+        budgetPerHead: 300,
+        entranceFeeAmount: 150,
+        hasEntranceFee: true,
+        imageUrl: '',
+        attendeeUserIds: ['user4', 'user5'],
+      );
+
+      // Create the test party
+      await partyService.create(
+        clubId: testParty.clubId,
+        hostUserId: testParty.hostUserId,
+        title: testParty.title,
+        dateTime: testParty.dateTime,
+        description: testParty.description,
+        capacity: testParty.capacity,
+        budgetPerHead: testParty.budgetPerHead,
+        entranceFeeAmount: testParty.entranceFeeAmount,
+        hasEntranceFee: testParty.hasEntranceFee,
+        imageUrl: testParty.imageUrl,
+      );
+
+      // Hide loading indicator
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Test future party created for tomorrow!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Refresh party stats
+        _loadPartyStats();
+      }
+    } catch (e) {
+      print('Error creating test future party: $e');
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating test party: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _createTestPartyData() async {
+    // Legacy method - now calls the ongoing party creation
+    await _createTestOngoingParty();
   }
 
   Future<String> _uploadProfileImage(XFile image, String userId) async {
@@ -791,24 +883,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return GestureDetector(
       onTap: _showVerificationApplication,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+            bottom: BorderSide(color: const Color(0xFFE8EDF5), width: 1),
           ),
         ),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                shape: BoxShape.circle,
+                color: const Color(0xFFF1F5FC),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 Icons.help_outline,
-                color: Colors.grey.shade600,
+                color: Colors.grey.shade700,
                 size: 20,
               ),
             ),
@@ -821,8 +913,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'Apply for Verification',
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1B1F2A),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -832,8 +924,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(12),
+                          color: const Color(0xFFEEF2FA),
+                          borderRadius: BorderRadius.circular(999),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -849,7 +941,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               style: TextStyle(
                                 color: Colors.grey.shade600,
                                 fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -863,7 +955,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Icon(
               Icons.arrow_forward_ios,
               color: Colors.grey.shade400,
-              size: 16,
+              size: 13,
             ),
           ],
         ),
@@ -1256,17 +1348,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(_surfaceRadius),
         border: Border.all(
-          color: Colors.grey.shade200,
+          color: const Color(0xFFE6EBF4),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -1279,9 +1371,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Text(
                 'Ratings & Reviews',
                 style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1B1F2A),
                 ),
               ),
               if (profileUserId != currentUserId)
@@ -1291,7 +1383,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: const Icon(Icons.favorite_border, size: 18),
                   label: const Text('Rate'),
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.red.shade400,
+                    foregroundColor: AppTheme.colors.primary,
                   ),
                 ),
             ],
@@ -1326,8 +1418,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               averageRating.toStringAsFixed(1),
                               style: const TextStyle(
                                 fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1B1F2A),
                               ),
                             ),
                             Text(
@@ -1394,11 +1486,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildReviewCard(Map<String, dynamic> review) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        color: Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE9EEF6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1424,8 +1516,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       review['reviewerName'] ?? 'Anonymous',
                       style: const TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1B1F2A),
                       ),
                     ),
                     if (review['createdAt'] != null)
@@ -1449,7 +1541,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               review['comment'],
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.black87,
+                color: const Color(0xFF1B1F2A),
                 height: 1.4,
               ),
             ),
@@ -1755,7 +1847,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   if (context.mounted) {
                     context.read<NotificationService>().reset();
                   }
-                  
+
                   await auth.signOut();
                   if (context.mounted) {
                     context.go('/login');
@@ -1783,301 +1875,363 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         return Scaffold(
           extendBodyBehindAppBar: true,
-          backgroundColor: Colors.white,
-          body: Column(
+          backgroundColor: _pageBackground,
+          body: Stack(
             children: [
-              // Custom Header with Rounded Bottom Corners
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 24,
-                  left: 24,
-                  right: 24,
-                  bottom: 24,
-                ),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                ),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Profile',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        _showSavedParties(context);
-                      },
-                      icon: const Icon(Icons.bookmark_outline,
-                          color: Colors.black87),
-                    ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      onPressed: () {
-                        context.push('/help');
-                      },
-                      icon:
-                          const Icon(Icons.help_outline, color: Colors.black87),
-                    ),
-                  ],
+              Positioned(
+                top: -130,
+                left: -90,
+                child: Container(
+                  width: 260,
+                  height: 260,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.colors.primary.withValues(alpha: 0.12),
+                  ),
                 ),
               ),
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      // Profile Header - Flat Card Design
-                      Stack(
-                        children: [
-                          Container(
+              Positioned(
+                top: 80,
+                right: -100,
+                child: Container(
+                  width: 240,
+                  height: 240,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.colors.secondary.withValues(alpha: 0.1),
+                  ),
+                ),
+              ),
+              SafeArea(
+                bottom: false,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(_surfaceRadius),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 9, sigmaY: 9),
+                          child: Container(
                             width: double.infinity,
-                            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                            padding: const EdgeInsets.all(24),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 12),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: Colors.grey.shade200,
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
+                              color: Colors.white.withValues(alpha: 0.64),
+                              borderRadius:
+                                  BorderRadius.circular(_surfaceRadius),
+                              border:
+                                  Border.all(color: const Color(0xFFE6EBF4)),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            child: Row(
                               children: [
-                                // Top row: App name and profile photo
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Image.asset(
-                                      'assets/logos/wordmark_color.png',
-                                      height: 32,
-                                      fit: BoxFit.contain,
+                                const Expanded(
+                                  child: Text(
+                                    'Profile',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF1B1F2A),
+                                      height: 1,
                                     ),
-                                    CircleAvatar(
-                                      radius: 28,
-                                      backgroundColor: Colors.grey.shade200,
-                                      backgroundImage: user?.profileImageUrl != null
-                                          ? NetworkImage(user!.profileImageUrl!)
-                                          : null,
-                                      child: user?.profileImageUrl == null
-                                          ? Icon(
-                                              Icons.person,
-                                              color: Colors.grey.shade600,
-                                              size: 30,
-                                            )
-                                          : null,
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                                const SizedBox(height: 40),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            user?.displayName ?? 'Guest User',
-                                            style: TextStyle(
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.black87,
-                                              letterSpacing: 0.5,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                            maxLines: 1,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.colors.primary,
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.stars_rounded,
-                                                color: Colors.white,
-                                                size: 16,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Text(
-                                                    '$_bunnyPoints',
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: Colors.white,
-                                                      height: 1.0,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    'Points',
-                                                    style: TextStyle(
-                                                      fontSize: 9,
-                                                      fontWeight: FontWeight.w500,
-                                                      color: Colors.white
-                                                          .withOpacity(0.9),
-                                                      height: 1.0,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    _buildProfileVerificationBadge(
-                                        user?.verificationStatus),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _getMemberSinceText(user?.createdAt),
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      children: [
-                                        _buildStatItem('Hosted',
-                                            _hostedPartiesCount.toString()),
-                                        _buildStatItem('Joined',
-                                            _joinedPartiesCount.toString()),
-                                      ],
-                                    ),
-                                  ],
+                                _buildHeaderAction(
+                                  icon: Icons.bookmark_outline,
+                                  onTap: () => _showSavedParties(context),
+                                ),
+                                const SizedBox(width: 8),
+                                _buildHeaderAction(
+                                  icon: Icons.help_outline,
+                                  onTap: () => context.push('/help'),
                                 ),
                               ],
                             ),
                           ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Opacity(
-                              opacity: 0.18,
-                              child: Image.asset(
-                                'assets/logos/bunny_logo.png',
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // Ratings and Reviews Section
-                      _buildRatingsAndReviewsSection(
-                          user?.id ?? '', auth.currentUser?.id ?? ''),
-
-                      const SizedBox(height: 20),
-
-                      // Menu Items - Minimalist Style
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
                         ),
+                      ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.only(bottom: 110),
                         child: Column(
                           children: [
-                            if (!auth.isGuest) ...[
-                              _buildVerificationMenuItem(
-                                  user?.verificationStatus),
-                              _buildMenuItem(Icons.image, 'Update Profile Image',
-                                  _updateUserImage),
-                              _buildMenuItem(Icons.add_circle_outline,
-                                  'Create Test Party Data',
-                                  _createTestPartyData),
-                              _buildMenuItem(
-                                  Icons.email_outlined, 'Email Settings', () {
-                                context.push('/email-settings');
-                              }),
-                              // Show Admin Settings if user has correct token
-                              if (user?.tokenAdmin == 'sjahkmwieoahean')
-                                _buildMenuItem(
-                                    Icons.admin_panel_settings, 'Admin Settings', () {
-                                  context.push('/admin-settings');
-                                }),
-                            ],
-                            _buildMenuItem(
-                                Icons.lightbulb_outline, 'Request Feature', () {
-                              context.push('/request-feature');
-                            }),
-                            if (auth.isGuest)
-                              _buildMenuItem(Icons.login, 'Sign In', () {
-                                context.push('/login');
-                              }, isLast: true)
-                            else
-                              _buildMenuItem(Icons.logout, 'Sign Out', () async {
-                                await _showSignOutDialog(context, auth);
-                              }, isLast: true),
+                            Stack(
+                              children: [
+                                Container(
+                                  width: double.infinity,
+                                  margin:
+                                      const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.92),
+                                    borderRadius:
+                                        BorderRadius.circular(_surfaceRadius),
+                                    border: Border.all(
+                                      color: const Color(0xFFE6EBF4),
+                                      width: 1,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.06),
+                                        blurRadius: 22,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Image.asset(
+                                            'assets/logos/wordmark_color.png',
+                                            height: 30,
+                                            fit: BoxFit.contain,
+                                          ),
+                                          CircleAvatar(
+                                            radius: 30,
+                                            backgroundColor:
+                                                Colors.grey.shade200,
+                                            backgroundImage:
+                                                user?.profileImageUrl != null
+                                                    ? NetworkImage(
+                                                        user!.profileImageUrl!)
+                                                    : null,
+                                            child: user?.profileImageUrl == null
+                                                ? Icon(
+                                                    Icons.person,
+                                                    color: Colors.grey.shade600,
+                                                    size: 32,
+                                                  )
+                                                : null,
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 34),
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              user?.displayName ?? 'Guest User',
+                                              style: const TextStyle(
+                                                fontSize: 30,
+                                                fontWeight: FontWeight.w900,
+                                                color: Color(0xFF1B1F2A),
+                                                height: 1,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  AppTheme.colors.primary,
+                                                  AppTheme.colors.secondary,
+                                                ],
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.stars_rounded,
+                                                  color: Colors.white,
+                                                  size: 18,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '$_bunnyPoints Points',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
+                                      _buildProfileVerificationBadge(
+                                          user?.verificationStatus),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        _getMemberSinceText(user?.createdAt),
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 22),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: _buildStatItem(
+                                              'Hosted',
+                                              _hostedPartiesCount.toString(),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: _buildStatItem(
+                                              'Joined',
+                                              _joinedPartiesCount.toString(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 16,
+                                  right: 18,
+                                  child: Opacity(
+                                    opacity: 0.14,
+                                    child: Image.asset(
+                                      'assets/logos/bunny_logo.png',
+                                      width: 92,
+                                      height: 92,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            _buildRatingsAndReviewsSection(
+                                user?.id ?? '', auth.currentUser?.id ?? ''),
+                            const SizedBox(height: 20),
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                borderRadius:
+                                    BorderRadius.circular(_surfaceRadius),
+                                border:
+                                    Border.all(color: const Color(0xFFE6EBF4)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  if (!auth.isGuest) ...[
+                                    _buildVerificationMenuItem(
+                                        user?.verificationStatus),
+                                    _buildMenuItem(
+                                        Icons.image,
+                                        'Update Profile Image',
+                                        _updateUserImage),
+                                    _buildMenuItem(
+                                        Icons.play_circle_outline,
+                                        'Create Test Ongoing Party',
+                                        _createTestOngoingParty),
+                                    _buildMenuItem(
+                                        Icons.add_circle_outline,
+                                        'Create Test Future Party',
+                                        _createTestFutureParty),
+                                    _buildMenuItem(
+                                        Icons.email_outlined, 'Email Settings',
+                                        () {
+                                      context.push('/email-settings');
+                                    }),
+                                    if (user?.tokenAdmin == 'sjahkmwieoahean')
+                                      _buildMenuItem(Icons.admin_panel_settings,
+                                          'Admin Settings', () {
+                                        context.push('/admin-settings');
+                                      }),
+                                  ],
+                                  _buildMenuItem(Icons.lightbulb_outline,
+                                      'Request Feature', () {
+                                    context.push('/request-feature');
+                                  }),
+                                  if (auth.isGuest)
+                                    _buildMenuItem(Icons.login, 'Sign In', () {
+                                      context.push('/login');
+                                    }, isLast: true)
+                                  else
+                                    _buildMenuItem(Icons.logout, 'Sign Out',
+                                        () async {
+                                      await _showSignOutDialog(context, auth);
+                                    }, isLast: true),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.72),
+                                borderRadius:
+                                    BorderRadius.circular(_surfaceRadius),
+                                border:
+                                    Border.all(color: const Color(0xFFE6EBF4)),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'BUNNY v1.0.0',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade500,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
-
-                      const SizedBox(height: 20),
-
-                      // App Version
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'BUNNY v1.0.0',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(
-                          height: 100), // Bottom padding for navigation
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildHeaderAction({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE6EBF4)),
+        ),
+        child: Icon(icon, color: const Color(0xFF1B1F2A), size: 22),
+      ),
     );
   }
 }

@@ -21,8 +21,6 @@ class RootScaffold extends StatefulWidget {
 }
 
 class _RootScaffoldState extends State<RootScaffold> {
-  int? _hoveredIndex;
-  int? _pressedIndex;
   int _currentIndex = 0;
 
   Future<void> _showCreatePartyAuthPrompt() async {
@@ -56,8 +54,8 @@ class _RootScaffoldState extends State<RootScaffold> {
     final String location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/parties')) return 1;
     if (location.startsWith('/create-party')) return 2;
-    if (location.startsWith('/profile')) return 3;
-    if (location.startsWith('/chat')) return 4;
+    if (location.startsWith('/chat')) return 3;
+    if (location.startsWith('/profile')) return 4;
     if (location == '/' || location.startsWith('/?')) return 0;
 
     // Non-tab routes (e.g., /activity) return -1 so we render the provided child.
@@ -68,7 +66,8 @@ class _RootScaffoldState extends State<RootScaffold> {
     // Special handling for Create Party (index 2) - show as full-screen overlay instead
     if (index == 2) {
       final authService = context.read<AuthService>();
-      final isLoggedOut = authService.currentUser == null || authService.isGuest;
+      final isLoggedOut =
+          authService.currentUser == null || authService.isGuest;
       if (isLoggedOut) {
         _showCreatePartyAuthPrompt();
         return;
@@ -79,17 +78,13 @@ class _RootScaffoldState extends State<RootScaffold> {
         pageBuilder: (context, animation, secondaryAnimation) {
           return const CreatePartyScreen(isOverlay: true);
         },
-        transitionBuilder: (context, animation, secondaryAnimation, child) {
-          return ScaleTransition(
-            scale: animation,
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 300),
+        transitionBuilder: (context, animation, secondaryAnimation, child) =>
+            child,
+        transitionDuration: Duration.zero,
       );
       return;
     }
-    
+
     if (index != _currentIndex) {
       setState(() {
         _currentIndex = index;
@@ -107,10 +102,10 @@ class _RootScaffoldState extends State<RootScaffold> {
           context.go('/create-party');
           break;
         case 3:
-          context.go('/profile');
+          context.go('/chat');
           break;
         case 4:
-          context.go('/chat');
+          context.go('/profile');
           break;
       }
     }
@@ -144,8 +139,9 @@ class _RootScaffoldState extends State<RootScaffold> {
               // Home Screen
               Builder(
                 builder: (context) {
-                  final String? scrollToClubId =
-                      GoRouterState.of(context).uri.queryParameters['scrollToClub'];
+                  final String? scrollToClubId = GoRouterState.of(context)
+                      .uri
+                      .queryParameters['scrollToClub'];
                   return HomeScreen(scrollToClubId: scrollToClubId);
                 },
               ),
@@ -157,10 +153,10 @@ class _RootScaffoldState extends State<RootScaffold> {
                   return const CreatePartyScreen();
                 },
               ),
-              // Profile Screen
-              const ProfileScreen(),
               // Chat Screen
               const ChatScreen(),
+              // Profile Screen
+              const ProfileScreen(),
             ],
           ),
           if (routeIndex == -1)
@@ -170,24 +166,24 @@ class _RootScaffoldState extends State<RootScaffold> {
         ],
       ),
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        minimum: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(999),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+            filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(999),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withOpacity(0.92),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, -5),
+                    color: AppTheme.colors.primary.withOpacity(0.12),
+                    blurRadius: 24,
+                    offset: const Offset(0, 12),
                   ),
                 ],
               ),
@@ -198,25 +194,37 @@ class _RootScaffoldState extends State<RootScaffold> {
                     child: Row(
                       children: List<Widget>.generate(5, (int i) {
                         final bool isActive = i == _currentIndex;
-                        final bool isPressed = i == _pressedIndex;
-                        final bool isHovered = i == _hoveredIndex;
-                        final Color primary =
-                            AppTheme.colors.primary; // Darker blue
                         return Expanded(
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeOut,
-                            decoration: (isPressed || isActive || isHovered)
-                                ? BoxDecoration(
-                                    color: isActive
-                                        ? AppTheme.colors.primary.withOpacity(
-                                            0.8) // Blue fill for active
-                                        : primary.withOpacity(
-                                            isPressed ? 0.22 : 0.10),
-                                    borderRadius: BorderRadius.circular(24),
-                                  )
-                                : const BoxDecoration(
-                                    color: Colors.transparent),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 7,
+                            ),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 220),
+                              curve: Curves.easeOut,
+                              decoration: isActive
+                                  ? BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppTheme.colors.primary,
+                                          AppTheme.colors.secondary,
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(999),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppTheme.colors.primary
+                                              .withOpacity(0.22),
+                                          blurRadius: 18,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
+                                    )
+                                  : const BoxDecoration(
+                                      color: Colors.transparent,
+                                    ),
+                            ),
                           ),
                         );
                       }),
@@ -225,6 +233,7 @@ class _RootScaffoldState extends State<RootScaffold> {
                   Theme(
                     data: Theme.of(context).copyWith(
                       navigationBarTheme: NavigationBarThemeData(
+                        backgroundColor: Colors.transparent,
                         labelTextStyle:
                             WidgetStateProperty.resolveWith<TextStyle?>(
                           (Set<WidgetState> states) {
@@ -232,13 +241,13 @@ class _RootScaffoldState extends State<RootScaffold> {
                               return const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w800,
                               );
                             }
                             return TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
+                              color: AppTheme.colors.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
                             );
                           },
                         ),
@@ -248,7 +257,7 @@ class _RootScaffoldState extends State<RootScaffold> {
                       backgroundColor: Colors.transparent,
                       height: 64,
                       labelBehavior:
-                          NavigationDestinationLabelBehavior.onlyShowSelected,
+                          NavigationDestinationLabelBehavior.alwaysHide,
                       indicatorColor: Colors.transparent,
                       shadowColor: Colors.transparent,
                       surfaceTintColor: Colors.transparent,
@@ -256,60 +265,38 @@ class _RootScaffoldState extends State<RootScaffold> {
                       onDestinationSelected: (int i) => _onTap(context, i),
                       destinations: <NavigationDestination>[
                         NavigationDestination(
-                          icon: Icon(Icons.home_outlined,
-                            color: const Color(0xFF374151),
-                            size: 26,
-                            weight: 600),
+                            icon: Icon(Icons.home_outlined,
+                                color: AppTheme.colors.text,
+                                size: 23,
+                                weight: 600),
                             selectedIcon: Icon(Icons.home,
-                                color: Colors.white, size: 26, weight: 700),
+                                color: Colors.white, size: 23, weight: 700),
                             label: 'Home'),
                         NavigationDestination(
-                          icon: Icon(Icons.confirmation_number_outlined,
-                            color: const Color(0xFF374151),
-                            size: 26,
-                            weight: 600),
+                            icon: Icon(Icons.confirmation_number_outlined,
+                                color: AppTheme.colors.text,
+                                size: 23,
+                                weight: 600),
                             selectedIcon: Icon(Icons.confirmation_number,
-                                color: Colors.white, size: 26, weight: 700),
+                                color: Colors.white, size: 23, weight: 700),
                             label: 'Parties'),
                         NavigationDestination(
                             icon: _AnimatedPlusButton(isSelected: false),
                             selectedIcon: _AnimatedPlusButton(isSelected: true),
                             label: 'Create'),
                         NavigationDestination(
-                          icon: Icon(Icons.person_outline,
-                            color: const Color(0xFF374151),
-                            size: 26,
-                            weight: 600),
-                            selectedIcon: Icon(Icons.person,
-                                color: Colors.white, size: 26, weight: 700),
-                            label: 'Profile'),
+                            icon: _ChatIconWithBadge(isSelected: false),
+                            selectedIcon: _ChatIconWithBadge(isSelected: true),
+                            label: 'Chat'),
                         NavigationDestination(
-                          icon: _ChatIconWithBadge(isSelected: false),
-                          selectedIcon: _ChatIconWithBadge(isSelected: true),
-                          label: 'Chat'),
+                            icon: Icon(Icons.person_outline,
+                                color: AppTheme.colors.text,
+                                size: 23,
+                                weight: 600),
+                            selectedIcon: Icon(Icons.person,
+                                color: Colors.white, size: 23, weight: 700),
+                            label: 'Profile'),
                       ],
-                    ),
-                  ),
-                  // Gesture overlay for full-height hover/press feedback, taps with ripple
-                  Positioned.fill(
-                    child: Row(
-                      children: List<Widget>.generate(5, (int i) {
-                        return Expanded(
-                          child: MouseRegion(
-                            onEnter: (_) => setState(() => _hoveredIndex = i),
-                            onExit: (_) => setState(() => _hoveredIndex = null),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                splashColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                                onTap: () => _onTap(context, i),
-                                child: const SizedBox.expand(),
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
                     ),
                   ),
                 ],
@@ -324,14 +311,15 @@ class _RootScaffoldState extends State<RootScaffold> {
 
 class _AnimatedPlusButton extends StatefulWidget {
   final bool isSelected;
-  
+
   const _AnimatedPlusButton({required this.isSelected});
 
   @override
   State<_AnimatedPlusButton> createState() => _AnimatedPlusButtonState();
 }
 
-class _AnimatedPlusButtonState extends State<_AnimatedPlusButton> with SingleTickerProviderStateMixin {
+class _AnimatedPlusButtonState extends State<_AnimatedPlusButton>
+    with SingleTickerProviderStateMixin {
   AnimationController? _controller;
   Animation<double>? _wiggleAnimation;
 
@@ -400,7 +388,7 @@ class _AnimatedPlusButtonState extends State<_AnimatedPlusButton> with SingleTic
 
 class _ChatIconWithBadge extends StatelessWidget {
   final bool isSelected;
-  
+
   const _ChatIconWithBadge({required this.isSelected});
 
   @override
@@ -424,14 +412,15 @@ class _ChatIconWithBadge extends StatelessWidget {
       builder: (context, snapshot) {
         int totalUnread = 0;
         List<String> groupsNeedingMigration = [];
-        
+
         if (snapshot.hasData) {
           // Calculate synchronously from unreadByUser field
           for (var doc in snapshot.data!.docs) {
             final data = doc.data() as Map<String, dynamic>;
             final unreadByUser = data['unreadByUser'] as Map<String, dynamic>?;
-            
-            if (unreadByUser != null && unreadByUser.containsKey(currentUser.id)) {
+
+            if (unreadByUser != null &&
+                unreadByUser.containsKey(currentUser.id)) {
               // Fast path: use existing unreadByUser field
               final userUnread = unreadByUser[currentUser.id];
               if (userUnread is num) {
@@ -442,7 +431,7 @@ class _ChatIconWithBadge extends StatelessWidget {
               groupsNeedingMigration.add(doc.id);
             }
           }
-          
+
           // Trigger migrations asynchronously in background
           if (groupsNeedingMigration.isNotEmpty) {
             _migrateGroupsInBackground(groupsNeedingMigration, currentUser.id);
@@ -504,46 +493,47 @@ class _ChatIconWithBadge extends StatelessWidget {
               .collection('chat_groups')
               .doc(groupId)
               .get();
-          
+
           if (!groupDoc.exists) return;
-          
+
           final data = groupDoc.data()!;
           final unreadByUser = data['unreadByUser'] as Map<String, dynamic>?;
-          
+
           // Only migrate if field doesn't exist
           if (unreadByUser == null || !unreadByUser.containsKey(userId)) {
             print('Migrating chat group $groupId in background');
-            
+
             final messagesSnapshot = await FirebaseFirestore.instance
                 .collection('chat_groups')
                 .doc(groupId)
                 .collection('messages')
                 .get();
-            
+
             final memberIds = List<String>.from(data['memberIds'] ?? []);
             final newUnreadByUser = Map<String, int>.from(unreadByUser ?? {});
-            
+
             for (final memberId in memberIds) {
               int unreadCount = 0;
               for (var msgDoc in messagesSnapshot.docs) {
                 final msgData = msgDoc.data();
-                final readBy = List<String>.from(msgData['readBy'] as List<dynamic>? ?? []);
+                final readBy = List<String>.from(
+                    msgData['readBy'] as List<dynamic>? ?? []);
                 final isRead = msgData['isRead'] as bool? ?? false;
-                
+
                 if (!readBy.contains(memberId) && !isRead) {
                   unreadCount++;
                 }
               }
               newUnreadByUser[memberId] = unreadCount;
             }
-            
+
             await FirebaseFirestore.instance
                 .collection('chat_groups')
                 .doc(groupId)
                 .update({
               'unreadByUser': newUnreadByUser,
             });
-            
+
             print('Successfully migrated chat group $groupId in background');
           }
         } catch (e) {

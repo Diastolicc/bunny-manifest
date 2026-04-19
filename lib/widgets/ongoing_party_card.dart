@@ -16,11 +16,13 @@ class OngoingPartyCard extends StatefulWidget {
     this.userLatitude,
     this.userLongitude,
     this.showNowBadge = false,
+    this.storyStyle = false,
   });
   final Party party;
   final double? userLatitude;
   final double? userLongitude;
   final bool showNowBadge;
+  final bool storyStyle;
 
   @override
   State<OngoingPartyCard> createState() => _OngoingPartyCardState();
@@ -309,6 +311,10 @@ class _OngoingPartyCardState extends State<OngoingPartyCard> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    if (widget.storyStyle) {
+      return _buildStoryStyleCard(context);
+    }
+
     return GestureDetector(
       onTap: () async {
         // Cache the party data locally before navigation
@@ -642,6 +648,81 @@ class _OngoingPartyCardState extends State<OngoingPartyCard> with SingleTickerPr
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStoryStyleCard(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        await LocalCacheService.cacheParty(widget.party);
+        context.push('/party-details?id=${widget.party.id}');
+      },
+      child: SizedBox(
+        width: 96,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.red.shade400,
+                        Colors.red.shade700,
+                      ],
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey.shade200,
+                        image: DecorationImage(
+                          image: NetworkImage(
+                            (widget.party.imageUrl != null &&
+                                    widget.party.imageUrl!.isNotEmpty)
+                                ? widget.party.imageUrl!
+                                : _getPartyImage(widget.party.title),
+                          ),
+                          fit: BoxFit.cover,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.party.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
       ),
     );
