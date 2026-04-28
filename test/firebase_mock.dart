@@ -1,13 +1,17 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_core_platform_interface/firebase_core_platform_interface.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 typedef Callback = void Function(MethodCall call);
 
-void setupFirebaseMocks([Callback? customHandlers]) {
+Future<void> setupFirebaseMocks([Callback? customHandlers]) async {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setupFirebaseCoreMocks();
+  
+  // Actually initialize Firebase after setting up mocks
+  await Firebase.initializeApp();
 }
 
 Future<T> neverEndingFuture<T>() async {

@@ -9,12 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:bunny/main.dart';
-import 'firebase_mock.dart'; // ADD THIS LINE - Import the Firebase mocks
+import 'firebase_mock.dart';
 
 void main() {
-  // ADD THIS BLOCK - Setup Firebase mocks before all tests run
+  // Setup Firebase mocks before all tests run
   setUpAll(() async {
-    setupFirebaseMocks();
+    await setupFirebaseMocks();  // Changed to await
     setupFirebaseAuthMocks();
     setupFirebaseFirestoreMocks();
     setupFirebaseStorageMocks();
