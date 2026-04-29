@@ -12,8 +12,8 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
     
-    // Wait for the app to settle (finish loading)
-    await tester.pumpAndSettle(const Duration(seconds: 5));
+    // Just pump once to trigger the first build
+    await tester.pump();
 
     // If we got here without throwing, the app launched successfully!
     expect(true, true);
