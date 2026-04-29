@@ -377,11 +377,11 @@ jobs:
 
       - name: Build Web Admin (Sandbox)
         if: github.ref == 'refs/heads/sandbox'
-        run: flutter build web --target lib/web_admin_main.dart --web-renderer canvaskit
+        run: flutter build web --target lib/web_admin_main.dart
 
       - name: Build Web Admin (Production)
         if: github.ref == 'refs/heads/main'
-        run: flutter build web --target lib/web_admin_main.dart --web-renderer canvaskit --release
+        run: flutter build web --target lib/web_admin_main.dart --release
 
       - name: Upload Web build
         uses: actions/upload-artifact@v4
