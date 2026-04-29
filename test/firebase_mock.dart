@@ -1,108 +1,57 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_core_platform_interface/firebase_core_platform_interface.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-typedef Callback = void Function(MethodCall call);
+// Fake Firebase implementation for testing
+class FakeFirebasePlatform extends FirebasePlatform {
+  FakeFirebasePlatform() : super();
 
-Future<void> setupFirebaseMocks([Callback? customHandlers]) async {
+  static const FirebaseOptions _testOptions = FirebaseOptions(
+    apiKey: 'test-api-key',
+    appId: '1:123456789:web:abcdef',
+    messagingSenderId: '123456789',
+    projectId: 'test-project',
+  );
+
+  @override
+  FirebaseAppPlatform app([String name = defaultFirebaseAppName]) {
+    return FakeFirebaseAppPlatform(name, _testOptions);
+  }
+
+  @override
+  Future<FirebaseAppPlatform> initializeApp({
+    String? name,
+    FirebaseOptions? options,
+  }) async {
+    return FakeFirebaseAppPlatform(name ?? defaultFirebaseAppName, options ?? _testOptions);
+  }
+
+  @override
+  List<FirebaseAppPlatform> get apps {
+    return [FakeFirebaseAppPlatform(defaultFirebaseAppName, _testOptions)];
+  }
+}
+
+class FakeFirebaseAppPlatform extends FirebaseAppPlatform {
+  FakeFirebaseAppPlatform(String name, FirebaseOptions options)
+      : super(name, options);
+
+  @override
+  Future<void> delete() async {}
+
+  @override
+  Future<void> setAutomaticDataCollectionEnabled(bool enabled) async {}
+
+  @override
+  Future<void> setAutomaticResourceManagementEnabled(bool enabled) async {}
+
+  @override
+  Future<bool> isAutomaticDataCollectionEnabled() async => false;
+}
+
+void setupFirebaseMocks() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  setupFirebaseCoreMocks();
   
-  // Actually initialize Firebase after setting up mocks
-  await Firebase.initializeApp();
-}
-
-Future<T> neverEndingFuture<T>() async {
-  // This is to prevent the test from finishing before the tester.pumpWidget completes
-  // See https://github.com/flutter/flutter/issues/88765
-  await Future.delayed(const Duration(days: 365));
-  throw '';
-}
-
-void setupFirebaseCoreMocks() {
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(
-    const MethodChannel(
-      'plugins.flutter.io/firebase_core',
-    ),
-    (methodCall) async {
-      if (methodCall.method == 'Firebase#initializeCore') {
-        return [
-          {
-            'name': '[DEFAULT]',
-            'options': {
-              'apiKey': 'test-api-key',
-              'appId': '1:123456789:web:abcdef',
-              'messagingSenderId': '123456789',
-              'projectId': 'test-project',
-            },
-            'pluginConstants': {},
-          }
-        ];
-      }
-
-      if (methodCall.method == 'Firebase#initializeApp') {
-        return {
-          'name': methodCall.arguments['appName'],
-          'options': methodCall.arguments['options'],
-          'pluginConstants': {},
-        };
-      }
-
-      return null;
-    },
-  );
-}
-
-void setupFirebaseAuthMocks() {
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(
-    const MethodChannel('plugins.flutter.io/firebase_auth'),
-    (MethodCall methodCall) async {
-      switch (methodCall.method) {
-        case 'Auth#registerIdTokenListener':
-          return {
-            'user': null,
-          };
-        case 'Auth#registerChangeListener':
-          return {
-            'user': null,
-          };
-        default:
-          return null;
-      }
-    },
-  );
-}
-
-void setupFirebaseFirestoreMocks() {
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(
-    const MethodChannel('plugins.flutter.io/cloud_firestore'),
-    (MethodCall methodCall) async {
-      return null;
-    },
-  );
-}
-
-void setupFirebaseStorageMocks() {
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(
-    const MethodChannel('plugins.flutter.io/firebase_storage'),
-    (MethodCall methodCall) async {
-      return null;
-    },
-  );
-}
-
-void setupFirebaseAnalyticsMocks() {
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(
-    const MethodChannel('plugins.flutter.io/firebase_analytics'),
-    (MethodCall methodCall) async {
-      return null;
-    },
-  );
+  // Register the fake Firebase platform
+  FirebasePlatform.instance = FakeFirebasePlatform();
 }

@@ -13,12 +13,8 @@ import 'firebase_mock.dart';
 
 void main() {
   // Setup Firebase mocks before all tests run
-  setUpAll(() async {
-    await setupFirebaseMocks();  // Changed to await
-    setupFirebaseAuthMocks();
-    setupFirebaseFirestoreMocks();
-    setupFirebaseStorageMocks();
-    setupFirebaseAnalyticsMocks();
+  setUpAll(() {
+    setupFirebaseMocks();
   });
 
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
