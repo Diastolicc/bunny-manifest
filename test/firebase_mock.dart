@@ -46,7 +46,7 @@ class FakeFirebaseAppPlatform extends FirebaseAppPlatform {
   Future<void> setAutomaticResourceManagementEnabled(bool enabled) async {}
 
   @override
-  Future<bool> isAutomaticDataCollectionEnabled() async => false;
+  bool get isAutomaticDataCollectionEnabled => false;
 }
 
 void setupFirebaseMocks() {
