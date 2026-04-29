@@ -303,9 +303,9 @@ jobs:
           path: build/app/outputs/bundle/release/*.aab
           retention-days: 30
 
-  # Job 4: Build Web Admin
+  # Job 4: Build Web
   build-web:
-    name: Build Web Admin
+    name: Build Web
     runs-on: ubuntu-latest
     needs: test
     
@@ -375,18 +375,18 @@ jobs:
       - name: Generate code with build_runner
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
-      - name: Build Web Admin (Sandbox)
+      - name: Build Web (Sandbox)
         if: github.ref == 'refs/heads/sandbox'
-        run: flutter build web --target lib/web_admin_main.dart
+        run: flutter build web
 
-      - name: Build Web Admin (Production)
+      - name: Build Web (Production)
         if: github.ref == 'refs/heads/main'
-        run: flutter build web --target lib/web_admin_main.dart --release
+        run: flutter build web --release
 
       - name: Upload Web build
         uses: actions/upload-artifact@v4
         with:
-          name: web-admin-${{ github.ref_name }}
+          name: web-${{ github.ref_name }}
           path: build/web/
           retention-days: 30
 
@@ -404,7 +404,7 @@ jobs:
       - name: Download web build
         uses: actions/download-artifact@v4
         with:
-          name: web-admin-${{ github.ref_name }}
+          name: web-${{ github.ref_name }}
           path: build/web
 
       - name: Deploy to Firebase Hosting
